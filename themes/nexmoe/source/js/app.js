@@ -2,6 +2,13 @@ const getRealPath = (pathname, desc = false) => {
   if (!pathname) {
     pathname = window.location.pathname;
   }
+  // 站点部署在子路径(如 /cn/)时, 剥掉站点根前缀再比较, 否则首段都是子路径名会导致所有菜单同时高亮
+  const siteRoot = window.SITE_ROOT || "";
+  if (siteRoot && pathname.indexOf(siteRoot) === 0) {
+    pathname = pathname.slice(siteRoot.length - 1);
+  } else if (siteRoot && pathname.indexOf(siteRoot.slice(0, -1)) === 0) {
+    pathname = pathname.slice(siteRoot.length - 1) || "/";
+  }
   let names = pathname.split("/");
   if (desc === false) {
     for (let i = names.length - 1; i >= 0; --i) {
