@@ -42,67 +42,67 @@ cdn: # 这里可以修改站点使用的库的CDN
 
 menu:
   回到首页:
-    - /cn/
+    - /
     - icon-home
   日语分站:
-    - /jp/
+    - https://jasonkayzk.github.io/jp/
     - icon-calendar-fill
   关于博客:
-    - /cn/about/
+    - about/
     - icon-eye-fill
   文章归档:
-    - /cn/archive
+    - archive
     - icon-container
   Anki笔记:
-    - /cn/anki/
+    - anki/
     - icon-tag-fill
   学习进度:
-    - /cn/study/
+    - study/
     - icon-telegram
   跑步健身:
-    - /cn/running/
+    - running/
     - icon-dribbble
   面试相关:
-    - /cn/interview/
+    - interview/
     - icon-container
   算法总结:
-    - /cn/algorithm/
+    - algorithm/
     - icon-areachart
   软件安装:
-    - /cn/installing/
+    - installing/
     - icon-unorderedlist
   # 文件分享:
-  #   - /cn/sharing/
+  #   - sharing/
   #   - icon-telegram
   创意白板:
-    - /cn/board/
+    - board/
     - icon-tag-fill
   摄影分享:
     - http://159.75.131.252:32352/
     - icon-telegram
   畅所欲言:
-    - /cn/chat/
+    - chat/
     - icon-ellipsis
   # 幸运抽:
-  #   - /cn/lucky/
+  #   - lucky/
   #   - icon-eye-fill
   # 思维导图:
-  #   - /cn/xmind/
+  #   - xmind/
   #   - icon-ellipsis
   # 时光相册:
-  #   - /cn/cos-gallery
+  #   - cos-gallery
   #   - icon-ellipsis
   实时数据统计:
-    - /cn/realtime/
+    - realtime/
     - icon-time-circle-fill
   # 日本語勉強について:
-  #   - /cn/japanese/
+  #   - japanese/
   #   - icon-left
   # ♥Love♥:
-  #   - /cn/love/
+  #   - love/
   #   - icon-ellipsis
   友情链接:
-    - /cn/py/
+    - py/
     - icon-container
 
 widgets:

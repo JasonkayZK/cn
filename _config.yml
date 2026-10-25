@@ -108,8 +108,8 @@ jsonContent:
 
 # Header
 menu:
-  主页: /cn/
-  相册: /cn/tags/相册/
+  主页: /
+  相册: /tags/相册/
 
 # SubNav
 subnav:
