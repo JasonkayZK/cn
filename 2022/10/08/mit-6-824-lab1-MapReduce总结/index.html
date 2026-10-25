@@ -1,0 +1,1974 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script>window.SITE_ROOT = "/cn/";</script>
+  <script type="text/javascript" src="https://cdn.bootcdn.net/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script type="text/javascript" src="/cn/js/jquery.goup.min.js" defer></script>
+  
+  <title>mit-6.824 lab1 MapReduce总结 - 张小凯的博客</title>
+  <meta charset="UTF-8">
+  <meta name="description" content="謙虚は人を進歩させ、ごうまんは人を落後させる。社会の初心者から、よろしくお願いします！">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  
+  
+
+  <link rel="shortcut icon" href="/cn/favicon.ico" type="image/png" />
+  <meta name="description" content="最近开始重新学习 mit-6.824，目前把Lab1做完了，在这里总结一下；源代码根据 MIT 实验的要求，是一个Private的 repo 没有公开，需要源代码的可以联系我，也可以一起交流～">
+<meta property="og:type" content="article">
+<meta property="og:title" content="mit-6.824 lab1 MapReduce总结">
+<meta property="og:url" content="https://jasonkayzk.github.io/cn/2022/10/08/mit-6-824-lab1-MapReduce%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="张小凯的博客">
+<meta property="og:description" content="最近开始重新学习 mit-6.824，目前把Lab1做完了，在这里总结一下；源代码根据 MIT 实验的要求，是一个Private的 repo 没有公开，需要源代码的可以联系我，也可以一起交流～">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.gitmirror.com/JasonkayZK/blog_static/master/images/mapreduce_architecture.png">
+<meta property="article:published_time" content="2022-10-08T15:34:40.000Z">
+<meta property="article:modified_time" content="2026-10-25T04:05:16.274Z">
+<meta property="article:author" content="Jasonkay">
+<meta property="article:tag" content="分布式">
+<meta property="article:tag" content="课程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.gitmirror.com/JasonkayZK/blog_static/master/images/mapreduce_architecture.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mdui@0.4.3/dist/css/mdui.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.16.2/styles/atom-one-dark.css">
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+  
+  <link rel="stylesheet" href="//at.alicdn.com/t/font_1038733_0xvrvpg9c0r.css">
+  <link rel="stylesheet" href="/cn/css/style.css?v=1792901139011">
+
+  <!-- 进度条加载: nprogress -->
+  <link href="https://cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <script src="https://cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6617852905105366"
+  crossorigin="anonymous"></script>
+  <!-- Cloudflare Web Analytics -->
+   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "73d46a730654451bac205cdc12bea918"}'></script>
+  <!-- umami Web Analytics -->
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="23fadd4b-d559-4ae0-a4f6-f90680c3d4c0"></script>
+
+  <!-- 本地搜索js -->
+  <script type="text/javascript" src="/cn/js/search.js"></script>
+
+  <!-- 百度站点管理 -->
+  <meta name="baidu-site-verification" content="code-SKIvb4A1Qx" />
+
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-1NWK4EEKDF');
+  </script>
+
+  <!-- 站内通知 -->
+  <link href='https://apps.bdimg.com/libs/bootstrap/3.3.4/css/bootstrap.css' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" type="text/css" href="/cn/css/default.css">
+  <link rel='stylesheet' href='/cn/css/animate.min.css'>
+  <link rel="stylesheet" href="/cn/css/notification.css">
+  <link rel="stylesheet" href="/cn/css/index.css">
+<meta name="generator" content="Hexo 8.1.2"><link rel="alternate" href="/cn/atom.xml" title="张小凯的博客" type="application/atom+xml">
+</head>
+
+<!-- 文章阅读进度条样式 -->
+<style>
+  #content_progress {
+      /* Positioning */
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 99999;
+      width: 100%;
+      height: 3px;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      border: none;
+      background-color: transparent;
+      color: #ffaa73;
+}
+
+#content_progress::-webkit-progress-bar {
+      background-color: transparent;
+}
+
+#content_progress::-webkit-progress-value {
+      background-color: #ffaa73;
+}
+
+#content_progress::-moz-progress-bar {
+      background-color:#ffaa73;
+}
+</style>
+<!-- 文章阅读进度条JS -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      var winHeight = window.innerHeight,
+            docHeight = document.documentElement.scrollHeight,
+            progressBar = document.querySelector('#content_progress');
+      progressBar.max = docHeight - winHeight;
+      progressBar.value = window.scrollY;
+
+      document.addEventListener('scroll', function () {
+            progressBar.max = document.documentElement.scrollHeight - window.innerHeight;
+            progressBar.value = window.scrollY;
+      });
+});
+</script>
+
+<body class="mdui-drawer-body-left">
+  <!-- 文章阅读进度条 -->
+  <progress id="content_progress" value="0"></progress>
+
+  <!-- 音频播放 -->
+  <!-- <link rel="stylesheet" href="/dist/APlayer.min.css">
+  <div id="aplayer"></div>
+  <script type="text/javascript" src="/dist/APlayer.min.js"></script>
+  <script type="text/javascript" src="/dist/music.js"></script> -->
+
+  
+  <div id="nexmoe-background">
+    <div class="nexmoe-bg" style="background-image: url(/cn/images/bg.jpg)"></div>
+    <div class="mdui-appbar mdui-shadow-0">
+      <div class="mdui-toolbar">
+        <a mdui-drawer="{target: '#drawer', swipe: true}" title="menu" class="mdui-btn mdui-btn-icon"><i
+            class="mdui-icon material-icons">menu</i></a>
+        <div class="mdui-toolbar-spacer"></div>
+        <a href="/cn/" title="Jasonkay" class="mdui-btn mdui-btn-icon"><img
+            src="/cn/images/avatar4.jpg"></a>
+      </div>
+    </div>
+  </div>
+  <div id="nexmoe-header">
+    <div class="nexmoe-drawer mdui-drawer" id="drawer">
+    <div class="nexmoe-avatar mdui-ripple">
+        <a href="/cn/" title="Jasonkay">
+            <img src="/cn/images/avatar4.jpg" alt="Jasonkay">
+        </a>
+    </div>
+
+    <!-- 黑白切换css -->
+    <!-- <style>
+        .light-dark-checkbox {
+            margin: 0 auto;
+        }
+
+        /* The switch - the box around the slider */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        /* Hide default HTML checkbox */
+        .switch .theme-switcher {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        /* The slider */
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            transition: 0.4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "🌞";
+            height: 0px;
+            width: 0px;
+            left: -10px;
+            top: 16px;
+            line-height: 0px;
+            transition: 0.4s;
+        }
+
+        .theme-switcher:checked+.slider:before {
+            left: 35px;
+            content: "🌑";
+        }
+
+        .theme-switcher:checked+.slider:before {
+            transform: translateX(45px);
+        }
+
+        /* Rounded sliders */
+        .slider.round {
+            border-radius: 40px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        /* 暗黑样式 */
+        body.night {
+            background-color: #263238;
+            color: #aaa;
+        }
+        body.night img {
+            filter: brightness(30%);
+        }
+        article.night {
+            background-color: black;
+            color: white;
+        }
+    </style> -->
+
+    <!-- 黑白开关 -->
+    <!-- <div class="nexmoe-list-item mdui-list-item">
+        <div class="light-dark-checkbox">
+            <div>
+                黑白模式切换(Beta)
+            </div>
+            <label class="switch">
+                <input id="light-dark-input" type="checkbox" onclick="switchTheme();" class="theme-switcher">
+                <span class="slider round"></span>
+            </label>
+        </div>
+    </div> -->
+
+    <!-- 黑白切换js -->
+    <!-- <script>
+        // get hours of the day in 24Hr format (0-23)
+        var hr = (new Date()).getHours();
+
+        $(document).ready(function () {
+            var theme = sessionStorage.getItem("theme");
+            if (theme == "dark") {
+                document.body.classList.add('night');
+                console.log('夜间模式开启');
+            } else if (theme == "light") {
+                document.body.classList.remove('night');
+                console.log('夜间模式关闭');
+            } else {
+                setDefaultTheme(hr);
+            }
+        });
+
+        function switchTheme() {
+            if (sessionStorage.getItem("theme") == "dark") {
+                sessionStorage.setItem("theme", "light");
+                document.body.classList.remove('night');
+                console.log('夜间模式关闭');
+            } else if (sessionStorage.getItem("theme") == "light") {
+                sessionStorage.setItem("theme", "dark");
+                document.body.classList.add('night');
+                console.log('夜间模式开启');
+            } else {
+                setDefaultTheme(hr);
+            }
+        };
+
+        function setDefaultTheme(curHr) {
+            // 6:00-18:00 light
+            if (curHr >= 6 && curHr <= 18) {
+                document.body.classList.remove('night');
+                console.log('夜间模式关闭');
+                sessionStorage.setItem("theme", "light");
+                $("#light-dark-input").attr("checked", false);
+            } else {
+                // 0:00-6:00 & 18:00-00:00 night
+                sessionStorage.setItem("theme", "dark");
+                document.body.classList.add('night');
+                console.log('夜间模式开启');
+                $("#light-dark-input").attr("checked", true);
+            }
+        }
+    </script> -->
+
+    <div class="nexmoe-count">
+        <div><span>文章</span>524</div>
+        <div><span>标签</span>277</div>
+        <div><span>分类</span>67</div>
+    </div>
+    <ul class="nexmoe-list mdui-list" mdui-collapse="{accordion: true}">
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/"
+            title="回到首页">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-home"></i>
+            <div class="mdui-list-item-content">
+                回到首页
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="https://jasonkayzk.github.io/jp/"
+            title="日语分站">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-calendar-fill"></i>
+            <div class="mdui-list-item-content">
+                日语分站
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/about/"
+            title="关于博客">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-eye-fill"></i>
+            <div class="mdui-list-item-content">
+                关于博客
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/archive"
+            title="文章归档">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-container"></i>
+            <div class="mdui-list-item-content">
+                文章归档
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/anki/"
+            title="Anki笔记">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-tag-fill"></i>
+            <div class="mdui-list-item-content">
+                Anki笔记
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/study/"
+            title="学习进度">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-telegram"></i>
+            <div class="mdui-list-item-content">
+                学习进度
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/running/"
+            title="跑步健身">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-dribbble"></i>
+            <div class="mdui-list-item-content">
+                跑步健身
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/interview/"
+            title="面试相关">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-container"></i>
+            <div class="mdui-list-item-content">
+                面试相关
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/algorithm/"
+            title="算法总结">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-areachart"></i>
+            <div class="mdui-list-item-content">
+                算法总结
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/installing/"
+            title="软件安装">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-unorderedlist"></i>
+            <div class="mdui-list-item-content">
+                软件安装
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/board/"
+            title="创意白板">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-tag-fill"></i>
+            <div class="mdui-list-item-content">
+                创意白板
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="http://159.75.131.252:32352/"
+            title="摄影分享">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-telegram"></i>
+            <div class="mdui-list-item-content">
+                摄影分享
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/chat/"
+            title="畅所欲言">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-ellipsis"></i>
+            <div class="mdui-list-item-content">
+                畅所欲言
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/realtime/"
+            title="实时数据统计">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-time-circle-fill"></i>
+            <div class="mdui-list-item-content">
+                实时数据统计
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/py/"
+            title="友情链接">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-container"></i>
+            <div class="mdui-list-item-content">
+                友情链接
+            </div>
+        </a>
+        
+    </ul>
+    <aside id="nexmoe-sidebar">
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">社交按钮</h3>
+    <div class="nexmoe-widget nexmoe-social">
+        <a class="mdui-ripple" href="https://space.bilibili.com/23364338" target="_blank" mdui-tooltip="{content: '哔哩哔哩'}" style="color: rgb(231, 106, 141);background-color: rgba(231, 106, 141, .15);">
+            <i class="nexmoefont icon-bilibili"></i>
+        </a><a class="mdui-ripple" href="https://github.com/jasonkayzk/" target="_blank" mdui-tooltip="{content: 'GitHub'}" style="color: rgb(25, 23, 23);background-color: rgba(25, 23, 23, .15);">
+            <i class="nexmoefont icon-github"></i>
+        </a><a class="mdui-ripple" href="https://steamcommunity.com/id/jasonkayzk/" target="_blank" mdui-tooltip="{content: 'Steam'}" style="color: rgb(29, 161, 242);background-color: rgba(29, 161, 242, .1);">
+            <i class="nexmoefont icon-steam"></i>
+        </a><a class="mdui-ripple" href="https://twitter.com/Jasonkay_ZK/" target="_blank" mdui-tooltip="{content: 'Twitter'}" style="color: rgb(29, 161, 242);background-color: rgba(29, 161, 242, .1);">
+            <i class="nexmoefont icon-twitter"></i>
+        </a><a class="mdui-ripple" href="mailto:jasonkayzk@gmail.com" target="_blank" mdui-tooltip="{content: 'Mail'}" style="color: rgb(29, 161, 242);background-color: rgba(29, 161, 242, .1);">
+            <i class="nexmoefont icon-mail-fill"></i>
+        </a>
+    </div>
+</div>
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">站内搜索</h3>
+    <div class="nexmoe-widget nexmoe-search">
+        <form class="site-search-form">
+            <input type="text" id="local-search-input" class="st-search-input" />
+        </form>
+        <div id="local-search-result" class="local-search-result-cls">
+        </div>
+    </div>
+</div>
+
+<!-- 执行本地搜索脚本 -->
+<script type="text/javascript">
+    var path = "/cn/search.xml";
+    searchFunc(path, 'local-search-input', 'local-search-result');
+</script>
+
+<style type="text/css">
+/* 搜索条 */
+.site-search-form {
+    text-align: center;
+}
+#local-search-input {
+    width: 100%;
+}
+
+/* 搜索结果关闭 */
+#local-search-close {
+    font-size: 22.5px;
+    cursor: pointer;
+    color: #ff4e6a;
+}
+
+.search-result-list > li {
+    line-height: 0.75;
+    margin-top: -5px;
+}
+
+</style>
+  
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">标签云</h3>
+    <div id="randomtagcloud" class="nexmoe-widget tagcloud">
+      <a href="/cn/tags/2048/" style="font-size: 10px;">2048</a> <a href="/cn/tags/ACM/" style="font-size: 10px;">ACM</a> <a href="/cn/tags/AI/" style="font-size: 10px;">AI</a> <a href="/cn/tags/AUFS/" style="font-size: 10px;">AUFS</a> <a href="/cn/tags/Android/" style="font-size: 10.91px;">Android</a> <a href="/cn/tags/AppStore/" style="font-size: 10px;">AppStore</a> <a href="/cn/tags/AppleScript/" style="font-size: 10px;">AppleScript</a> <a href="/cn/tags/Aria2/" style="font-size: 10.91px;">Aria2</a> <a href="/cn/tags/Async/" style="font-size: 10px;">Async</a> <a href="/cn/tags/BFS/" style="font-size: 10.45px;">BFS</a> <a href="/cn/tags/Bash/" style="font-size: 10.45px;">Bash</a> <a href="/cn/tags/BitTorrent/" style="font-size: 10px;">BitTorrent</a> <a href="/cn/tags/BloomFilter/" style="font-size: 10px;">BloomFilter</a> <a href="/cn/tags/Bytebase/" style="font-size: 10px;">Bytebase</a> <a href="/cn/tags/C/" style="font-size: 15.91px;">C++</a> <a href="/cn/tags/CAP/" style="font-size: 10px;">CAP</a> <a href="/cn/tags/CDN/" style="font-size: 10.45px;">CDN</a> <a href="/cn/tags/CGLib%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/" style="font-size: 10px;">CGLib动态代理</a> <a href="/cn/tags/CUDA/" style="font-size: 10.45px;">CUDA</a> <a href="/cn/tags/Cache/" style="font-size: 10px;">Cache</a> <a href="/cn/tags/Caffeine/" style="font-size: 10px;">Caffeine</a> <a href="/cn/tags/Cargo/" style="font-size: 11.82px;">Cargo</a> <a href="/cn/tags/CentOS/" style="font-size: 12.27px;">CentOS</a> <a href="/cn/tags/Cgroups/" style="font-size: 10px;">Cgroups</a> <a href="/cn/tags/Chrome%E6%89%A9%E5%B1%95/" style="font-size: 10px;">Chrome扩展</a> <a href="/cn/tags/Cli/" style="font-size: 10.45px;">Cli</a> <a href="/cn/tags/ClickHouse/" style="font-size: 10px;">ClickHouse</a> <a href="/cn/tags/Cling/" style="font-size: 10px;">Cling</a> <a href="/cn/tags/Clion/" style="font-size: 10px;">Clion</a> <a href="/cn/tags/Colima/" style="font-size: 10px;">Colima</a> <a href="/cn/tags/Container/" style="font-size: 10px;">Container</a> <a href="/cn/tags/DFS/" style="font-size: 10.45px;">DFS</a> <a href="/cn/tags/DLL/" style="font-size: 10.45px;">DLL</a> <a href="/cn/tags/Debian/" style="font-size: 10px;">Debian</a> <a href="/cn/tags/Docker/" style="font-size: 18.64px;">Docker</a> <a href="/cn/tags/Docker-Compose/" style="font-size: 10.45px;">Docker-Compose</a> <a href="/cn/tags/DockerHub/" style="font-size: 10px;">DockerHub</a> <a href="/cn/tags/Dolt/" style="font-size: 10px;">Dolt</a> <a href="/cn/tags/Dubbo/" style="font-size: 10.91px;">Dubbo</a> <a href="/cn/tags/Easegress/" style="font-size: 10px;">Easegress</a> <a href="/cn/tags/ElasticSearch/" style="font-size: 14.09px;">ElasticSearch</a> <a href="/cn/tags/Electron/" style="font-size: 10.45px;">Electron</a> <a href="/cn/tags/English/" style="font-size: 10px;">English</a> <a href="/cn/tags/Excel/" style="font-size: 10px;">Excel</a> <a href="/cn/tags/Express/" style="font-size: 10px;">Express</a> <a href="/cn/tags/FFmpeg/" style="font-size: 10px;">FFmpeg</a> <a href="/cn/tags/FTP/" style="font-size: 10.45px;">FTP</a> <a href="/cn/tags/FaaS/" style="font-size: 10px;">FaaS</a> <a href="/cn/tags/Future/" style="font-size: 10px;">Future</a> <a href="/cn/tags/GC/" style="font-size: 10px;">GC</a> <a href="/cn/tags/GPU/" style="font-size: 10.45px;">GPU</a> <a href="/cn/tags/GRPC/" style="font-size: 10px;">GRPC</a> <a href="/cn/tags/Gin/" style="font-size: 10px;">Gin</a> <a href="/cn/tags/Git/" style="font-size: 13.64px;">Git</a> <a href="/cn/tags/Gitee/" style="font-size: 10px;">Gitee</a> <a href="/cn/tags/Github/" style="font-size: 14.55px;">Github</a> <a href="/cn/tags/Github-Actions/" style="font-size: 10px;">Github-Actions</a> <a href="/cn/tags/Golang/" style="font-size: 18.18px;">Golang</a> <a href="/cn/tags/Gomod/" style="font-size: 10px;">Gomod</a> <a href="/cn/tags/Goroutine/" style="font-size: 10.91px;">Goroutine</a> <a href="/cn/tags/GraalVM/" style="font-size: 10px;">GraalVM</a> <a href="/cn/tags/Gradle/" style="font-size: 10px;">Gradle</a> <a href="/cn/tags/GraphQL/" style="font-size: 10px;">GraphQL</a> <a href="/cn/tags/HAProxy/" style="font-size: 10px;">HAProxy</a> <a href="/cn/tags/Hadoop/" style="font-size: 10px;">Hadoop</a> <a href="/cn/tags/IDEA%E9%85%8D%E7%BD%AE/" style="font-size: 10px;">IDEA配置</a> <a href="/cn/tags/ID%E7%94%9F%E6%88%90%E5%99%A8/" style="font-size: 10.45px;">ID生成器</a> <a href="/cn/tags/IO%E6%A8%A1%E5%9E%8B/" style="font-size: 10px;">IO模型</a> <a href="/cn/tags/Ingress/" style="font-size: 10.45px;">Ingress</a> <a href="/cn/tags/JDK%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/" style="font-size: 10.45px;">JDK动态代理</a> <a href="/cn/tags/JVM/" style="font-size: 10px;">JVM</a> <a href="/cn/tags/Java/" style="font-size: 12.27px;">Java</a> <a href="/cn/tags/JavaWeb/" style="font-size: 10px;">JavaWeb</a> <a href="/cn/tags/Java%E5%9F%BA%E7%A1%80/" style="font-size: 16.82px;">Java基础</a> <a href="/cn/tags/Java%E6%B3%A8%E8%A7%A3/" style="font-size: 10px;">Java注解</a> <a href="/cn/tags/Java%E6%BA%90%E7%A0%81/" style="font-size: 12.27px;">Java源码</a> <a href="/cn/tags/Java%E9%9D%A2%E8%AF%95/" style="font-size: 11.36px;">Java面试</a> <a href="/cn/tags/JuiceFS/" style="font-size: 10px;">JuiceFS</a> <a href="/cn/tags/JupyterLab/" style="font-size: 10px;">JupyterLab</a> <a href="/cn/tags/Kafka/" style="font-size: 10.45px;">Kafka</a> <a href="/cn/tags/Kubernetes/" style="font-size: 15.45px;">Kubernetes</a> <a href="/cn/tags/LVS/" style="font-size: 10.91px;">LVS</a> <a href="/cn/tags/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F/" style="font-size: 10.91px;">Lambda表达式</a> <a href="/cn/tags/LevelDB/" style="font-size: 10px;">LevelDB</a> <a href="/cn/tags/Library/" style="font-size: 10.45px;">Library</a> <a href="/cn/tags/Life/" style="font-size: 10px;">Life</a> <a href="/cn/tags/Linux/" style="font-size: 16.36px;">Linux</a> <a href="/cn/tags/LruCache/" style="font-size: 10px;">LruCache</a> <a href="/cn/tags/MacOS/" style="font-size: 10.45px;">MacOS</a> <a href="/cn/tags/Maven/" style="font-size: 12.27px;">Maven</a> <a href="/cn/tags/MongoDB/" style="font-size: 11.82px;">MongoDB</a> <a href="/cn/tags/MySQL/" style="font-size: 13.64px;">MySQL</a> <a href="/cn/tags/Mybatis/" style="font-size: 10.91px;">Mybatis</a> <a href="/cn/tags/NFS/" style="font-size: 10px;">NFS</a> <a href="/cn/tags/NIO/" style="font-size: 10.91px;">NIO</a> <a href="/cn/tags/NPM/" style="font-size: 10px;">NPM</a> <a href="/cn/tags/Namespace/" style="font-size: 10px;">Namespace</a> <a href="/cn/tags/Netty/" style="font-size: 10px;">Netty</a> <a href="/cn/tags/Newman/" style="font-size: 10px;">Newman</a> <a href="/cn/tags/Nginx/" style="font-size: 12.27px;">Nginx</a> <a href="/cn/tags/Node-js/" style="font-size: 11.36px;">Node.js</a> <a href="/cn/tags/Okular/" style="font-size: 10px;">Okular</a> <a href="/cn/tags/P2P/" style="font-size: 10px;">P2P</a> <a href="/cn/tags/POML/" style="font-size: 10px;">POML</a> <a href="/cn/tags/Panic/" style="font-size: 10px;">Panic</a> <a href="/cn/tags/PipelineDB/" style="font-size: 10px;">PipelineDB</a> <a href="/cn/tags/PostgreSQL/" style="font-size: 10.45px;">PostgreSQL</a> <a href="/cn/tags/Postman/" style="font-size: 10.45px;">Postman</a> <a href="/cn/tags/Promise/" style="font-size: 10px;">Promise</a> <a href="/cn/tags/Protobuf/" style="font-size: 10.91px;">Protobuf</a> <a href="/cn/tags/Python/" style="font-size: 11.36px;">Python</a> <a href="/cn/tags/RAII/" style="font-size: 10px;">RAII</a> <a href="/cn/tags/RPC/" style="font-size: 10px;">RPC</a> <a href="/cn/tags/RSS/" style="font-size: 10.91px;">RSS</a> <a href="/cn/tags/React/" style="font-size: 10px;">React</a> <a href="/cn/tags/Redash/" style="font-size: 10px;">Redash</a> <a href="/cn/tags/Redis/" style="font-size: 14.55px;">Redis</a> <a href="/cn/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/cn/tags/Rust/" style="font-size: 18.64px;">Rust</a> <a href="/cn/tags/SPA/" style="font-size: 10px;">SPA</a> <a href="/cn/tags/SQLite/" style="font-size: 10px;">SQLite</a> <a href="/cn/tags/SSE/" style="font-size: 10px;">SSE</a> <a href="/cn/tags/SSH/" style="font-size: 10.45px;">SSH</a> <a href="/cn/tags/Serverless/" style="font-size: 10px;">Serverless</a> <a href="/cn/tags/Shadowsocks/" style="font-size: 10.91px;">Shadowsocks</a> <a href="/cn/tags/Skiplist/" style="font-size: 10px;">Skiplist</a> <a href="/cn/tags/Slice/" style="font-size: 10px;">Slice</a> <a href="/cn/tags/Socket/" style="font-size: 10px;">Socket</a> <a href="/cn/tags/Spring/" style="font-size: 11.82px;">Spring</a> <a href="/cn/tags/Spring-Boot/" style="font-size: 10px;">Spring Boot</a> <a href="/cn/tags/Spring%E6%BA%90%E7%A0%81/" style="font-size: 10px;">Spring源码</a> <a href="/cn/tags/String/" style="font-size: 10px;">String</a> <a href="/cn/tags/Swagger/" style="font-size: 10px;">Swagger</a> <a href="/cn/tags/TOML/" style="font-size: 10px;">TOML</a> <a href="/cn/tags/Telegraf/" style="font-size: 10px;">Telegraf</a> <a href="/cn/tags/Telegram/" style="font-size: 10px;">Telegram</a> <a href="/cn/tags/Tomcat/" style="font-size: 10.45px;">Tomcat</a> <a href="/cn/tags/TypeScript/" style="font-size: 10px;">TypeScript</a> <a href="/cn/tags/Typora/" style="font-size: 10px;">Typora</a> <a href="/cn/tags/UUID/" style="font-size: 10px;">UUID</a> <a href="/cn/tags/UnionFS/" style="font-size: 10px;">UnionFS</a> <a href="/cn/tags/VMWare/" style="font-size: 13.18px;">VMWare</a> <a href="/cn/tags/VPN/" style="font-size: 10px;">VPN</a> <a href="/cn/tags/WebAssembly/" style="font-size: 10.45px;">WebAssembly</a> <a href="/cn/tags/Websocket/" style="font-size: 10px;">Websocket</a> <a href="/cn/tags/XML/" style="font-size: 10.91px;">XML</a> <a href="/cn/tags/YAML/" style="font-size: 10px;">YAML</a> <a href="/cn/tags/Zookeeper/" style="font-size: 10.91px;">Zookeeper</a> <a href="/cn/tags/apt/" style="font-size: 10px;">apt</a> <a href="/cn/tags/autok3s/" style="font-size: 10px;">autok3s</a> <a href="/cn/tags/cURL/" style="font-size: 10px;">cURL</a> <a href="/cn/tags/chroot/" style="font-size: 10px;">chroot</a> <a href="/cn/tags/cmder/" style="font-size: 10px;">cmder</a> <a href="/cn/tags/grpc/" style="font-size: 10px;">grpc</a> <a href="/cn/tags/hash%E5%86%B2%E7%AA%81/" style="font-size: 10px;">hash冲突</a> <a href="/cn/tags/inoreader/" style="font-size: 10px;">inoreader</a> <a href="/cn/tags/k3s/" style="font-size: 10.45px;">k3s</a> <a href="/cn/tags/kafka/" style="font-size: 10px;">kafka</a> <a href="/cn/tags/keepalived/" style="font-size: 10px;">keepalived</a> <a href="/cn/tags/libp2p/" style="font-size: 10px;">libp2p</a> <a href="/cn/tags/minikube/" style="font-size: 10.45px;">minikube</a> <a href="/cn/tags/ntfy/" style="font-size: 10px;">ntfy</a> <a href="/cn/tags/picocli/" style="font-size: 10px;">picocli</a> <a href="/cn/tags/telnet/" style="font-size: 10px;">telnet</a> <a href="/cn/tags/uv/" style="font-size: 10px;">uv</a> <a href="/cn/tags/vcpkg/" style="font-size: 10px;">vcpkg</a> <a href="/cn/tags/xorm/" style="font-size: 10px;">xorm</a> <a href="/cn/tags/%E4%BA%8C%E5%88%86%E6%B3%95/" style="font-size: 10px;">二分法</a> <a href="/cn/tags/%E4%BA%8C%E5%8F%89%E6%A0%91/" style="font-size: 15.45px;">二叉树</a> <a href="/cn/tags/%E4%BA%8C%E7%BB%B4%E7%A0%81/" style="font-size: 10px;">二维码</a> <a href="/cn/tags/%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/" style="font-size: 10px;">交叉编译</a> <a href="/cn/tags/%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD/" style="font-size: 10.91px;">人工智能</a> <a href="/cn/tags/%E4%BA%BA%E7%94%9F%E6%97%A5%E8%AE%B0/" style="font-size: 17.73px;">人生日记</a> <a href="/cn/tags/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">代理模式</a> <a href="/cn/tags/%E4%BD%8D%E8%BF%90%E7%AE%97/" style="font-size: 10.45px;">位运算</a> <a href="/cn/tags/%E4%BF%A1%E5%8F%B7/" style="font-size: 10px;">信号</a> <a href="/cn/tags/%E4%BF%A1%E6%81%AF%E8%81%9A%E5%90%88/" style="font-size: 10px;">信息聚合</a> <a href="/cn/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" style="font-size: 10.45px;">内存管理</a> <a href="/cn/tags/%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/" style="font-size: 10px;">内网穿透</a> <a href="/cn/tags/%E5%87%BD%E6%95%B0%E5%BC%8F%E6%8E%A5%E5%8F%A3/" style="font-size: 10px;">函数式接口</a> <a href="/cn/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 15.91px;">分布式</a> <a href="/cn/tags/%E5%8A%9E%E5%85%AC/" style="font-size: 10px;">办公</a> <a href="/cn/tags/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/" style="font-size: 11.36px;">动态规划</a> <a href="/cn/tags/%E5%8D%8F%E7%A8%8B%E6%B1%A0/" style="font-size: 10px;">协程池</a> <a href="/cn/tags/%E5%8D%9A%E5%AE%A2%E7%AE%A1%E7%90%86/" style="font-size: 13.18px;">博客管理</a> <a href="/cn/tags/%E5%8D%9A%E5%AE%A2%E7%BE%8E%E5%8C%96/" style="font-size: 11.82px;">博客美化</a> <a href="/cn/tags/%E5%8F%8C%E6%8C%87%E9%92%88/" style="font-size: 10.45px;">双指针</a> <a href="/cn/tags/%E5%8F%8D%E5%B0%84/" style="font-size: 12.27px;">反射</a> <a href="/cn/tags/%E5%8F%A3%E6%89%8D/" style="font-size: 10.45px;">口才</a> <a href="/cn/tags/%E5%93%88%E5%B8%8C%E8%A1%A8/" style="font-size: 10.45px;">哈希表</a> <a href="/cn/tags/%E5%9B%9E%E6%BA%AF/" style="font-size: 10.45px;">回溯</a> <a href="/cn/tags/%E5%9B%9E%E6%BA%AF%E6%B3%95/" style="font-size: 10px;">回溯法</a> <a href="/cn/tags/%E5%A0%86/" style="font-size: 10.45px;">堆</a> <a href="/cn/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8B%E8%BD%BD/" style="font-size: 10.45px;">多线程下载</a> <a href="/cn/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE/" style="font-size: 10px;">大数据</a> <a href="/cn/tags/%E5%AD%97%E7%AC%A6%E4%B8%B2/" style="font-size: 13.18px;">字符串</a> <a href="/cn/tags/%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%A4%84%E7%90%86/" style="font-size: 10px;">字符串处理</a> <a href="/cn/tags/%E5%AD%A6%E4%B9%A0%E6%A1%88%E4%BE%8B/" style="font-size: 10.45px;">学习案例</a> <a href="/cn/tags/%E5%AE%B9%E5%99%A8/" style="font-size: 10px;">容器</a> <a href="/cn/tags/%E5%B7%A5%E5%85%B7%E5%88%86%E4%BA%AB/" style="font-size: 19.09px;">工具分享</a> <a href="/cn/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" style="font-size: 15.45px;">并发编程</a> <a href="/cn/tags/%E5%B9%B6%E8%A1%8C%E8%AE%A1%E7%AE%97/" style="font-size: 10.45px;">并行计算</a> <a href="/cn/tags/%E5%BA%8F%E5%88%97%E5%8C%96/" style="font-size: 10px;">序列化</a> <a href="/cn/tags/%E5%BB%BA%E7%AD%91/" style="font-size: 10px;">建筑</a> <a href="/cn/tags/%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/" style="font-size: 10.45px;">开发规范</a> <a href="/cn/tags/%E5%BC%80%E6%BA%90%E5%8D%8F%E8%AE%AE/" style="font-size: 10px;">开源协议</a> <a href="/cn/tags/%E6%80%A7%E8%83%BD%E6%8C%87%E6%A0%87/" style="font-size: 10px;">性能指标</a> <a href="/cn/tags/%E6%8A%80%E6%9C%AF%E6%9D%82%E8%B0%88/" style="font-size: 20px;">技术杂谈</a> <a href="/cn/tags/%E6%8E%92%E5%BA%8F/" style="font-size: 11.82px;">排序</a> <a href="/cn/tags/%E6%8E%A8%E9%80%81/" style="font-size: 10px;">推送</a> <a href="/cn/tags/%E6%90%9C%E7%B4%A2/" style="font-size: 10px;">搜索</a> <a href="/cn/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" style="font-size: 10.91px;">操作系统</a> <a href="/cn/tags/%E6%95%99%E5%B8%88/" style="font-size: 10.45px;">教师</a> <a href="/cn/tags/%E6%95%99%E6%A1%88/" style="font-size: 10.45px;">教案</a> <a href="/cn/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 12.73px;">数学</a> <a href="/cn/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/" style="font-size: 15px;">数据库</a> <a href="/cn/tags/%E6%95%B0%E7%BB%84/" style="font-size: 13.64px;">数组</a> <a href="/cn/tags/%E6%96%87%E5%AD%97%E9%9A%90%E8%97%8F/" style="font-size: 10px;">文字隐藏</a> <a href="/cn/tags/%E6%96%AD%E7%82%B9%E7%BB%AD%E4%BC%A0/" style="font-size: 10px;">断点续传</a> <a href="/cn/tags/%E6%96%B0%E6%B5%AA%E5%BE%AE%E5%8D%9A/" style="font-size: 10px;">新浪微博</a> <a href="/cn/tags/%E6%97%A5%E5%BF%97/" style="font-size: 10px;">日志</a> <a href="/cn/tags/%E6%97%A5%E6%9C%AC%E8%AA%9E/" style="font-size: 14.55px;">日本語</a> <a href="/cn/tags/%E6%97%A5%E8%A8%98/" style="font-size: 10.45px;">日記</a> <a href="/cn/tags/%E6%9C%8D%E5%8A%A1%E8%87%AA%E5%BB%BA/" style="font-size: 10.91px;">服务自建</a> <a href="/cn/tags/%E6%9F%A5%E6%89%BE/" style="font-size: 10.91px;">查找</a> <a href="/cn/tags/%E6%A0%88/" style="font-size: 10.91px;">栈</a> <a href="/cn/tags/%E6%AD%8C%E8%A9%9E/" style="font-size: 10px;">歌詞</a> <a href="/cn/tags/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/" style="font-size: 10.91px;">正则表达式</a> <a href="/cn/tags/%E6%B1%87%E7%BC%96%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">汇编语言</a> <a href="/cn/tags/%E6%B5%8B%E8%AF%95/" style="font-size: 10px;">测试</a> <a href="/cn/tags/%E6%BB%91%E7%AA%97/" style="font-size: 10px;">滑窗</a> <a href="/cn/tags/%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6/" style="font-size: 10px;">版本控制</a> <a href="/cn/tags/%E7%94%9F%E6%B4%BB%E6%80%BB%E7%BB%93/" style="font-size: 10px;">生活总结</a> <a href="/cn/tags/%E7%A6%8F%E5%88%A9%E5%88%86%E4%BA%AB/" style="font-size: 10px;">福利分享</a> <a href="/cn/tags/%E7%AE%97%E6%B3%95/" style="font-size: 12.73px;">算法</a> <a href="/cn/tags/%E7%AE%97%E6%B3%95%E9%A2%98%E7%9B%AE/" style="font-size: 19.55px;">算法题目</a> <a href="/cn/tags/%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/" style="font-size: 10.45px;">类加载器</a> <a href="/cn/tags/%E7%B4%A0%E6%95%B0/" style="font-size: 10px;">素数</a> <a href="/cn/tags/%E7%BA%BF%E6%80%A7%E6%8E%A2%E6%B5%8B%E6%B3%95/" style="font-size: 10px;">线性探测法</a> <a href="/cn/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/" style="font-size: 10.91px;">线程池</a> <a href="/cn/tags/%E7%BC%96%E8%AF%91%E4%BC%98%E5%8C%96/" style="font-size: 10px;">编译优化</a> <a href="/cn/tags/%E7%BC%96%E8%AF%91%E5%99%A8/" style="font-size: 10px;">编译器</a> <a href="/cn/tags/%E7%BD%91%E7%9B%98/" style="font-size: 10px;">网盘</a> <a href="/cn/tags/%E7%BD%91%E7%BB%9C%E7%BA%BF%E8%B7%AF/" style="font-size: 10px;">网络线路</a> <a href="/cn/tags/%E7%BF%BB%E8%A8%B3/" style="font-size: 10.45px;">翻訳</a> <a href="/cn/tags/%E8%87%AA%E5%90%AF%E5%8A%A8/" style="font-size: 10px;">自启动</a> <a href="/cn/tags/%E8%92%99%E7%89%B9%E5%8D%A1%E7%BD%97%E6%96%B9%E6%B3%95/" style="font-size: 10px;">蒙特卡罗方法</a> <a href="/cn/tags/%E8%99%9A%E6%8B%9F%E6%9C%BA/" style="font-size: 10.45px;">虚拟机</a> <a href="/cn/tags/%E8%A1%97%E6%99%AF/" style="font-size: 10px;">街景</a> <a href="/cn/tags/%E8%A3%85%E9%A5%B0%E5%99%A8%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">装饰器模式</a> <a href="/cn/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" style="font-size: 10px;">计算机网络</a> <a href="/cn/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">设计模式</a> <a href="/cn/tags/%E8%AF%BE%E7%A8%8B/" style="font-size: 10.45px;">课程</a> <a href="/cn/tags/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/" style="font-size: 12.27px;">负载均衡</a> <a href="/cn/tags/%E8%B4%AA%E5%BF%83/" style="font-size: 10px;">贪心</a> <a href="/cn/tags/%E8%B7%B3%E8%B7%B3%E8%9B%99%E6%97%A5%E8%AF%AD%E8%AF%BB%E5%BA%93/" style="font-size: 10.45px;">跳跳蛙日语读库</a> <a href="/cn/tags/%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/" style="font-size: 17.27px;">软件安装与配置</a> <a href="/cn/tags/%E8%BD%AF%E4%BB%B6%E6%8E%A8%E8%8D%90/" style="font-size: 15px;">软件推荐</a> <a href="/cn/tags/%E8%BD%AF%E4%BB%B6%E6%B5%8B%E8%AF%95/" style="font-size: 10.45px;">软件测试</a> <a href="/cn/tags/%E8%BD%AF%E8%80%83/" style="font-size: 10px;">软考</a> <a href="/cn/tags/%E8%BF%9B%E5%BA%A6%E6%9D%A1/" style="font-size: 10.45px;">进度条</a> <a href="/cn/tags/%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1/" style="font-size: 10px;">进程通信</a> <a href="/cn/tags/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/" style="font-size: 10px;">逆向工程</a> <a href="/cn/tags/%E9%80%92%E5%BD%92/" style="font-size: 10.45px;">递归</a> <a href="/cn/tags/%E9%87%8D%E5%AE%9A%E5%90%91/" style="font-size: 10px;">重定向</a> <a href="/cn/tags/%E9%87%8D%E8%A3%85%E7%B3%BB%E7%BB%9F/" style="font-size: 10px;">重装系统</a> <a href="/cn/tags/%E9%93%BE%E8%A1%A8/" style="font-size: 13.64px;">链表</a> <a href="/cn/tags/%E9%98%9F%E5%88%97/" style="font-size: 10px;">队列</a> <a href="/cn/tags/%E9%9A%8F%E6%9C%BA%E5%9B%BE%E7%89%87/" style="font-size: 10px;">随机图片</a> <a href="/cn/tags/%E9%9B%86%E5%90%88/" style="font-size: 14.09px;">集合</a> <a href="/cn/tags/%E9%9B%B6%E5%AE%BD%E5%AD%97%E7%AC%A6/" style="font-size: 10px;">零宽字符</a> <a href="/cn/tags/%E9%9D%99%E6%80%81%E4%BB%A3%E7%90%86/" style="font-size: 10px;">静态代理</a> <a href="/cn/tags/%E9%9D%A2%E8%AF%95%E6%80%BB%E7%BB%93/" style="font-size: 15px;">面试总结</a> <a href="/cn/tags/%E9%A1%B9%E7%9B%AE%E6%80%BB%E7%BB%93/" style="font-size: 10.91px;">项目总结</a> <a href="/cn/tags/%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA/" style="font-size: 10.91px;">项目构建</a> <a href="/cn/tags/%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2/" style="font-size: 11.36px;">项目部署</a> <a href="/cn/tags/%E9%BB%91%E8%8B%B9%E6%9E%9C/" style="font-size: 10px;">黑苹果</a>
+    </div>
+    
+  </div>
+
+  
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">文章分类</h3>
+    <div class="nexmoe-widget">
+
+      <ul class="category-list">
+
+        
+
+
+        
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/ACM/">ACM</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Android/">Android</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/C/">C++</a>
+          <span class="category-list-count">16</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/CUDA/">CUDA</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Chrome扩展/">Chrome扩展</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/ClickHouse/">ClickHouse</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Docker/">Docker</a>
+          <span class="category-list-count">25</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Dolt/">Dolt</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Dubbo/">Dubbo</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/ElasticSearch/">ElasticSearch</a>
+          <span class="category-list-count">8</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Electron/">Electron</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Git/">Git</a>
+          <span class="category-list-count">6</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Github/">Github</a>
+          <span class="category-list-count">5</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Golang/">Golang</a>
+          <span class="category-list-count">31</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/GraalVM/">GraalVM</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/IO基础/">IO基础</a>
+          <span class="category-list-count">4</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Java/">Java</a>
+          <span class="category-list-count">4</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Java源码/">Java源码</a>
+          <span class="category-list-count">16</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/JuiceFS/">JuiceFS</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Kubernetes/">Kubernetes</a>
+          <span class="category-list-count">12</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Life/">Life</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Linux/">Linux</a>
+          <span class="category-list-count">16</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Maven/">Maven</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/MongoDB/">MongoDB</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/MySQL/">MySQL</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Mybatis/">Mybatis</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/NPM/">NPM</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Netty/">Netty</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Nginx/">Nginx</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Node-js/">Node.js</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/PostgreSQL/">PostgreSQL</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Protobuf/">Protobuf</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Python/">Python</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Redash/">Redash</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Redis/">Redis</a>
+          <span class="category-list-count">6</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Ruby/">Ruby</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Rust/">Rust</a>
+          <span class="category-list-count">35</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Spring/">Spring</a>
+          <span class="category-list-count">5</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/TOML/">TOML</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/TypeScript/">TypeScript</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Websocket/">Websocket</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/人工智能/">人工智能</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/人生日记/">人生日记</a>
+          <span class="category-list-count">27</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/分布式/">分布式</a>
+          <span class="category-list-count">10</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/办公/">办公</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/博客管理/">博客管理</a>
+          <span class="category-list-count">6</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/学习案例/">学习案例</a>
+          <span class="category-list-count">6</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/工具分享/">工具分享</a>
+          <span class="category-list-count">41</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/并发编程/">并发编程</a>
+          <span class="category-list-count">13</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/技术杂谈/">技术杂谈</a>
+          <span class="category-list-count">59</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/教师/">教师</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/数据库/">数据库</a>
+          <span class="category-list-count">8</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/日本語/">日本語</a>
+          <span class="category-list-count">11</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/服务自建/">服务自建</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/汇编语言/">汇编语言</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/算法/">算法</a>
+          <span class="category-list-count">5</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/算法题目/">算法题目</a>
+          <span class="category-list-count">60</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/课程/">课程</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/软件安装与配置/">软件安装与配置</a>
+          <span class="category-list-count">20</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/软件测试/">软件测试</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/软考/">软考</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/面试总结/">面试总结</a>
+          <span class="category-list-count">15</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/项目总结/">项目总结</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+      </ul>
+
+    </div>
+  </div>
+
+
+  
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">最新文章</h3>
+    <div class="nexmoe-widget">
+      <ul>
+        
+          <li>
+            <a href="/cn/2026/02/13/%E7%BD%97%E6%B0%B8%E6%B5%A915%E5%A0%82%E6%BC%94%E8%AE%B2%E7%A7%81%E6%95%99%E8%AF%BE%E6%80%BB%E7%BB%93/">罗永浩15堂演讲私教课总结</a>
+          </li>
+        
+          <li>
+            <a href="/cn/2026/02/10/%E5%86%8D%E8%A7%812025%EF%BC%8C%E4%BD%A0%E5%A5%BD2026%EF%BC%81/">再见2025，你好2026！</a>
+          </li>
+        
+          <li>
+            <a href="/cn/2025/08/20/%E4%B8%8B%E4%B8%80%E4%BB%A3%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B%E8%AF%AD%E8%A8%80POML%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/">下一代提示词工程语言POML简明教程</a>
+          </li>
+        
+          <li>
+            <a href="/cn/2025/07/30/%E5%BC%80%E4%BA%86%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E4%B8%93%E9%97%A8%E5%AD%A6%E4%B9%A0%E6%97%A5%E8%AF%AD%E7%9A%84%E5%8D%9A%E5%AE%A2/">开了一个新的专门学习日语的博客</a>
+          </li>
+        
+          <li>
+            <a href="/cn/2025/07/30/%E4%BA%8C%E3%80%81%E6%80%A7%E8%83%BD%E6%A8%A1%E5%9E%8B%E4%B8%8E%E9%80%90%E5%85%83%E7%B4%A0%E4%BC%98%E5%8C%96/">二、性能模型与逐元素优化</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+    <div class="nexmoe-copyright">
+        <span style="color:#707070;font-size: 14px;">
+            本站总访问量<span id="busuanzi_value_site_pv"></span>次 <br />
+            本站访客数<span id="busuanzi_value_site_uv"></span>人次 <br />
+        </span>
+        <span id="showsectime" style="color:#707070;font-size: 14px;">
+            本站已运行0天0小时0分0秒
+        </span>
+        <i class="fa fa-heart throb" style="color:#d43f57">❤</i><br />
+
+        &copy; 2026 Jasonkay
+        Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+        & <a href="https://nexmoe.com/hexo-theme-nexmoe.html" target="_blank">Nexmoe</a>
+    </div>
+
+    <div id="footer-info">
+
+    </div>
+
+    <script type="text/javascript">
+        function NewDate(str) {
+            str = str.split('-');
+            var date = new Date();
+            date.setUTCFullYear(str[0], str[1] - 1, str[2]);
+            date.setUTCHours(0, 0, 0, 0);
+            return date;
+        }
+        function showsectime() {
+            var birthDay = NewDate("2019-09-01");
+            var today = new Date();
+            var timeold = today.getTime() - birthDay.getTime();
+            var sectimeold = timeold / 1000
+            var secondsold = Math.floor(sectimeold);
+            var msPerDay = 24 * 60 * 60 * 1000; var e_daysold = timeold / msPerDay;
+            var daysold = Math.floor(e_daysold);
+            var e_hrsold = (daysold - e_daysold) * -24;
+            var hrsold = Math.floor(e_hrsold);
+            var e_minsold = (hrsold - e_hrsold) * -60;
+            var minsold = Math.floor((hrsold - e_hrsold) * -60); var seconds = Math.floor((minsold - e_minsold) * -60).toString();
+            document.getElementById("showsectime").innerHTML = "本站已运行" + daysold + "天" + hrsold + "小时" + minsold + "分" + seconds + "秒";
+            setTimeout(showsectime, 1000);
+        }
+        showsectime();
+    </script>
+
+</div><!-- .nexmoe-drawer -->
+  </div>
+  <div id="nexmoe-content">
+    <div class="nexmoe-primary">
+      <div class="nexmoe-post">
+  <div class="nexmoe-post-cover">
+    
+    <img src="https://img.paulzzh.com/touhou/random?10">
+    
+    <h1>mit-6.824 lab1 MapReduce总结</h1>
+  </div>
+  <div class="nexmoe-post-meta">
+    <a><i class="nexmoefont icon-calendar-fill"></i>2022年10月08日</a>
+    <a><i class="nexmoefont icon-areachart"></i>11.4k 字</a>
+    <a><i class="nexmoefont icon-areachart"></i><span class="archive-article-date">阅读量<span
+          id="busuanzi_value_page_pv"></span>
+      </span></a>
+    <a><i class="nexmoefont icon-time-circle-fill"></i>大概 56 分钟</a>
+
+    
+    <a class="nexmoefont icon-appstore-fill -link" href="/cn/categories/%E8%AF%BE%E7%A8%8B/">课程</a>
+    
+    
+    <a class="nexmoefont icon-tag-fill -none-link" href="/cn/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag">分布式</a> <a class="nexmoefont icon-tag-fill -none-link" href="/cn/tags/%E8%AF%BE%E7%A8%8B/" rel="tag">课程</a>
+    
+  </div>
+  <article>
+    
+    <div id="toc" class="toc-article">
+      <ul class="markdownIt-TOC">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#mit-6-824-lab1-MapReduce%E6%80%BB%E7%BB%93"><span class="toc-text">mit-6.824 lab1 MapReduce总结</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MapReduce%E7%AE%80%E4%BB%8B"><span class="toc-text">MapReduce简介</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#MapReduce-%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B"><span class="toc-text">MapReduce 编程模型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%87%BD%E6%95%B0%E5%BC%8F%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B"><span class="toc-text">函数式编程模型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#MapReduce%E8%AE%A1%E7%AE%97%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B"><span class="toc-text">MapReduce计算执行过程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#MapReduce%E5%AE%B9%E9%94%99%E6%9C%BA%E5%88%B6"><span class="toc-text">MapReduce容错机制</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Worker%E5%A4%B1%E6%95%88"><span class="toc-text">Worker失效</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Master%E5%A4%B1%E6%95%88"><span class="toc-text">Master失效</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%90%BD%E5%90%8E%E7%9A%84Worker"><span class="toc-text">落后的Worker</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B6%E4%BB%96%E4%BC%98%E5%8C%96"><span class="toc-text">其他优化</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E6%9C%AC%E5%9C%B0%E6%80%A7"><span class="toc-text">数据本地性</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Combiner"><span class="toc-text">Combiner</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87"><span class="toc-text">环境准备</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E9%AA%8C%E5%86%85%E5%AE%B9%E5%88%86%E6%9E%90"><span class="toc-text">实验内容分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0"><span class="toc-text">代码实现</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#RPC%E9%80%9A%E4%BF%A1"><span class="toc-text">RPC通信</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Master%E8%B0%83%E5%BA%A6"><span class="toc-text">Master调度</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Master%E7%BB%93%E6%9E%84%E4%BD%93"><span class="toc-text">Master结构体</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Master%E5%88%9D%E5%A7%8B%E5%8C%96%E5%8F%8A%E5%90%AF%E5%8A%A8"><span class="toc-text">Master初始化及启动</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Task%E7%9A%84%E8%8E%B7%E5%8F%96%E4%B8%8E%E5%88%86%E9%85%8D"><span class="toc-text">Task的获取与分配</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A4%84%E7%90%86%E5%89%8D%E4%B8%80%E4%B8%AA%E6%8F%90%E4%BA%A4%E7%9A%84Task"><span class="toc-text">处理前一个提交的Task</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A4%84%E7%90%86Map%E5%92%8CReduce%E7%B1%BB%E5%9E%8B%E4%BB%BB%E5%8A%A1%E7%9A%84Handler"><span class="toc-text">处理Map和Reduce类型任务的Handler</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Job%E4%BB%BB%E5%8A%A1%E7%8A%B6%E6%80%81%E5%88%87%E6%8D%A2transit"><span class="toc-text">Job任务状态切换transit</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Worker%E7%8A%B6%E6%80%81%E8%BD%AE%E8%AF%A2"><span class="toc-text">Worker状态轮询</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%A8%E9%83%A8%E4%BB%BB%E5%8A%A1%E6%89%A7%E8%A1%8C%E7%BB%93%E6%9D%9F%E9%80%80%E5%87%BADone"><span class="toc-text">全部任务执行结束退出Done</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Worker%E8%AE%A1%E7%AE%97"><span class="toc-text">Worker计算</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96Worker"><span class="toc-text">初始化Worker</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A4%84%E7%90%86Map%E4%BB%BB%E5%8A%A1"><span class="toc-text">处理Map任务</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A4%84%E7%90%86Reduce%E4%BB%BB%E5%8A%A1"><span class="toc-text">处理Reduce任务</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B5%8B%E8%AF%95%E9%AA%8C%E8%AF%81"><span class="toc-text">测试验证</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%8E%E8%AE%B0"><span class="toc-text">后记</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95"><span class="toc-text">附录</span></a></li></ol>
+      </ul>
+    </div>
+    
+    <p>最近开始重新学习 mit-6.824，目前把Lab1做完了，在这里总结一下；</p>
+<p>源代码根据 MIT 实验的要求，是一个Private的 repo 没有公开，需要源代码的可以联系我，也可以一起交流～</p>
+<p>视频学习地址：</p>
+<ul>
+<li><a href="https://www.bilibili.com/video/BV1R7411t71W/">https://www.bilibili.com/video/BV1R7411t71W/</a></li>
+</ul>
+<br/>
+
+<span id="more"></span>
+
+<h1 id="mit-6-824-lab1-MapReduce总结"><a href="#mit-6-824-lab1-MapReduce总结" class="headerlink" title="mit-6.824 lab1 MapReduce总结"></a><strong>mit-6.824 lab1 MapReduce总结</strong></h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a><strong>前言</strong></h2><p>目前我学习的是 2020 MIT 6.824 分布式系统，当然现在有了更新的 2021、2022 的版本，不过大致思想基本上都是一样的；</p>
+<p>完整的 Lab 说明在这里：</p>
+<ul>
+<li><a href="http://nil.csail.mit.edu/6.824/2020/labs/lab-mr.html">http://nil.csail.mit.edu/6.824/2020/labs/lab-mr.html</a></li>
+</ul>
+<p>在做实验之前，建议先看完 Google 的这两篇论文：</p>
+<ul>
+<li><a href="https://static.googleusercontent.com/media/research.google.com/zh-CN//archive/gfs-sosp2003.pdf">https://static.googleusercontent.com/media/research.google.com/zh-CN//archive/gfs-sosp2003.pdf</a></li>
+<li><a href="https://pdos.csail.mit.edu/6.824/papers/mapreduce.pdf">https://pdos.csail.mit.edu/6.824/papers/mapreduce.pdf</a></li>
+</ul>
+<p>并看完 Lecture 1、2:</p>
+<ul>
+<li><a href="https://www.bilibili.com/video/BV1R7411t71W/">https://www.bilibili.com/video/BV1R7411t71W/</a></li>
+</ul>
+<p>对 MapReduce 有一定的了解，并且对 Go 有一定的了解再下手去做；</p>
+<br/>
+
+<h2 id="MapReduce简介"><a href="#MapReduce简介" class="headerlink" title="MapReduce简介"></a><strong>MapReduce简介</strong></h2><h3 id="MapReduce-编程模型"><a href="#MapReduce-编程模型" class="headerlink" title="MapReduce 编程模型"></a><strong>MapReduce 编程模型</strong></h3><p>总的来讲，Google MapReduce 所执行的分布式计算会以一组键值对作为输入，输出另一组键值对，用户则通过编写 Map 函数和 Reduce 函数来指定所要进行的计算。</p>
+<p>由用户编写的Map 函数将被应用在每一个输入键值对上，并输出若干键值对作为中间结果。之后，MapReduce 框架则会将与同一个键 II 相关联的值都传递到同一次 Reduce 函数调用中。</p>
+<p>同样由用户编写的 Reduce 函数以键 II 以及与该键相关联的值的集合作为参数，对传入的值进行合并并输出合并后的值的集合。</p>
+<p>形式化地说，由用户提供的 Map 函数和 Reduce 函数应有如下类型：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">map(k1,v1) → list(k2,v2) </span><br><span class="line"></span><br><span class="line">reduce(k2,list(v2)) → list(v2)</span><br></pre></td></tr></table></figure>
+
+<p>值得注意的是，在实际的实现中 MapReduce 框架使用 <code>Iterator</code> 来代表作为输入的集合，主要是为了避免集合过大，无法被完整地放入到内存中；</p>
+<p>作为案例，我们考虑这样一个问题：给定大量的文档，计算其中每个单词出现的次数（Word Count）；</p>
+<p>用户通常需要提供形如如下伪代码的代码来完成计算：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">map</span>(String key, String value):</span><br><span class="line">  // key: document name</span><br><span class="line">  // value: document contents</span><br><span class="line">  <span class="keyword">for</span> each word w <span class="keyword">in</span> value:</span><br><span class="line">    EmitIntermediate(w, “<span class="number">1</span>”);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">reduce(String key, Iterator values):</span><br><span class="line">  // key: a word</span><br><span class="line">  // values: a <span class="built_in">list</span> of counts</span><br><span class="line">  <span class="built_in">int</span> result = <span class="number">0</span>;</span><br><span class="line">  <span class="keyword">for</span> each v <span class="keyword">in</span> values:</span><br><span class="line">    result += ParseInt(v);</span><br><span class="line">  Emit(AsString(result));</span><br></pre></td></tr></table></figure>
+
+<br/>
+
+<h3 id="函数式编程模型"><a href="#函数式编程模型" class="headerlink" title="函数式编程模型"></a><strong>函数式编程模型</strong></h3><p>了解函数式编程范式的读者不难发现：MapReduce 所采用的编程模型源自于函数式编程里的 Map 函数和 Reduce 函数。后起之秀 Spark 同样采用了类似的编程模型；</p>
+<p>使用函数式编程模型的好处在于这种编程模型本身就对并行执行有良好的支持，这使得底层系统能够轻易地将大数据量的计算并行化，同时由用户函数所提供的确定性也使得底层系统能够将函数重新执行作为提供容错性的主要手段；</p>
+<h3 id="MapReduce计算执行过程"><a href="#MapReduce计算执行过程" class="headerlink" title="MapReduce计算执行过程"></a><strong>MapReduce计算执行过程</strong></h3><p>每一轮 MapReduce 的大致过程如下图所示：</p>
+<p><img src="https://raw.gitmirror.com/JasonkayZK/blog_static/master/images/mapreduce_architecture.png" alt="mapreduce_architecture.png"></p>
+<p>首先，用户通过 MapReduce 客户端指定 Map 函数和 Reduce 函数，以及此次 MapReduce 计算的配置，包括中间结果键值对的 Partition 数量 RR 以及用于切分中间结果的哈希函数 hash；</p>
+<p>用户开始 MapReduce 计算后，整个 MapReduce 计算的流程可总结如下：</p>
+<ol>
+<li>作为输入的文件会被分为 M 个 Split，每个 Split 的大小通常在 16~64 MB 之间；</li>
+<li>如此，整个 MapReduce 计算包含 M 个Map 任务和 R 个 Reduce 任务。Master 结点会从空闲的 Worker 结点中进行选取并为其分配 Map 任务和 Reduce 任务；</li>
+<li>收到 Map 任务的 Worker 们（又称 Mapper）开始读入自己对应的 Split，将读入的内容解析为输入键值对并调用由用户定义的 Map 函数；由 Map 函数产生的中间结果键值对会被暂时存放在缓冲内存区中；</li>
+<li>在 Map 阶段进行的同时，Mapper 们周期性地将放置在缓冲区中的中间结果存入到自己的本地磁盘中，同时根据用户指定的 Partition 函数（默认为 <code>hash(key) % R</code>）将产生的中间结果分为RR 个部分。任务完成时，Mapper 便会将中间结果在其本地磁盘上的存放位置报告给 Master；</li>
+<li>Mapper 上报的中间结果存放位置会被 Master 转发给 Reducer；当 Reducer 接收到这些信息后便会通过 RPC 读取存储在 Mapper 本地磁盘上属于对应 Partition 的中间结果；在读取完毕后，Reducer 会对读取到的数据进行排序以令拥有相同键的键值对能够连续分布；</li>
+<li>之后，Reducer 会为每个键收集与其关联的值的集合，并以之调用用户定义的 Reduce 函数。Reduce 函数的结果会被放入到对应的 Reduce Partition 结果文件；</li>
+</ol>
+<p>实际上，在一个 MapReduce 集群中，Master 会记录每一个 Map 和 Reduce 任务的当前完成状态，以及所分配的 Worker；除此之外，Master 还负责将 Mapper 产生的中间结果文件的位置和大小转发给 Reducer；</p>
+<p><strong>值得注意的是，每次 MapReduce 任务执行时，M 和 R 的值都应比集群中的 Worker 数量要高得多，以达成集群内负载均衡的效果；</strong></p>
+<br/>
+
+<h3 id="MapReduce容错机制"><a href="#MapReduce容错机制" class="headerlink" title="MapReduce容错机制"></a><strong>MapReduce容错机制</strong></h3><p>由于 Google MapReduce 很大程度上利用了由 Google File System 提供的分布式原子文件读写操作，所以 MapReduce 集群的容错机制实现相比之下便简洁很多，也主要集中在任务意外中断的恢复上；</p>
+<h4 id="Worker失效"><a href="#Worker失效" class="headerlink" title="Worker失效"></a><strong>Worker失效</strong></h4><p>在 MapReduce 集群中，Master 会周期地向每一个 Worker 发送 Ping 信号：如果某个 Worker 在一段时间内没有响应，Master 就会认为这个 Worker 已经不可用；</p>
+<p>任何分配给该 Worker 的 Map 任务，无论是正在运行还是已经完成，都需要由 Master 重新分配给其他 Worker，因为该 Worker 不可用也意味着存储在该 Worker 本地磁盘上的中间结果也不可用了；</p>
+<p>Master 也会将这次重试通知给所有 Reducer，没能从原本的 Mapper 上完整获取中间结果的 Reducer 便会开始从新的 Mapper 上获取数据；</p>
+<p>如果有 Reduce 任务分配给该 Worker，Master 则会选取其中尚未完成的 Reduce 任务分配给其他 Worker；</p>
+<p>鉴于 Google MapReduce 的结果是存储在 Google File System 上的，已完成的 Reduce 任务的结果的可用性由 Google File System 提供，因此 MapReduce Master 只需要处理未完成的 Reduce 任务即可；</p>
+<br/>
+
+<h4 id="Master失效"><a href="#Master失效" class="headerlink" title="Master失效"></a><strong>Master失效</strong></h4><p><strong>整个 MapReduce 集群中只会有一个 Master 结点，因此 Master 失效的情况并不多见；</strong></p>
+<p>Master 结点在运行时会周期性地将集群的当前状态作为保存点（Checkpoint）写入到磁盘中；</p>
+<p>Master 进程终止后，重新启动的 Master 进程即可利用存储在磁盘中的数据恢复到上一次保存点的状态；</p>
+<br/>
+
+<h4 id="落后的Worker"><a href="#落后的Worker" class="headerlink" title="落后的Worker"></a><strong>落后的Worker</strong></h4><p>如果集群中有<strong>某个 Worker 花了特别长的时间来完成最后的几个 Map 或 Reduce 任务，整个 MapReduce 计算任务的耗时就会因此被拖长，这样的 Worker 也就成了落后者（Straggler）！</strong></p>
+<p><font color="#f00"><strong>MapReduce 在整个计算完成到一定程度时就会将剩余的任务进行备份，即同时将其分配给其他空闲 Worker 来执行，并在其中一个 Worker 完成后将该任务视作已完成；</strong></font></p>
+<br/>
+
+<h3 id="其他优化"><a href="#其他优化" class="headerlink" title="其他优化"></a><strong>其他优化</strong></h3><p>在高可用的基础上，Google MapReduce 系统现有的实现同样采取了一些优化方式来提高系统运行的整体效率；</p>
+<h4 id="数据本地性"><a href="#数据本地性" class="headerlink" title="数据本地性"></a><strong>数据本地性</strong></h4><p>在 Google 内部所使用的计算环境中，机器间的网络带宽是比较稀缺的资源，需要尽量减少在机器间过多地进行不必要的数据传输；</p>
+<p>Google MapReduce 采用 Google File System 来保存输入和结果数据，因此 Master 在分配 Map 任务时会从 Google File System 中读取各个 Block 的位置信息，并尽量将对应的 Map 任务分配到持有该 Block 的 Replica 的机器上；</p>
+<p>如果无法将任务分配至该机器，Master 也会利用 Google File System 提供的机架拓扑信息将任务分配到较近的机器上；</p>
+<br/>
+
+<h4 id="Combiner"><a href="#Combiner" class="headerlink" title="Combiner"></a><strong>Combiner</strong></h4><p>在某些情形下，用户所定义的 Map 任务可能会产生大量重复的中间结果键，同时用户所定义的 Reduce 函数本身也是满足交换律和结合律的；</p>
+<p>在这种情况下，Google MapReduce 系统允许用户声明在 Mapper 上执行的 Combiner 函数：Mapper 会使用由自己输出的 R 个中间结果 Partition 调用 Combiner 函数以对中间结果进行局部合并，减少 Mapper 和 Reducer 间需要传输的数据量；</p>
+<blockquote>
+<p>  以上内容转自：</p>
+<ul>
+<li><a href="https://mr-dai.github.io/mapreduce_summary/">https://mr-dai.github.io/mapreduce_summary/</a></li>
+</ul>
+</blockquote>
+<br/>
+
+<h2 id="环境准备"><a href="#环境准备" class="headerlink" title="环境准备"></a><strong>环境准备</strong></h2><p>Lab1 所需要的环境非常简单，只需要你的电脑安装 Go 即可；</p>
+<blockquote>
+<p>  <strong>实验要求的环境是 Go 1.13，但是我的环境是 Go 1.18；</strong></p>
+<p>  <strong>但是由于 Go 良好向前兼容的特性，也是可以用的！</strong></p>
+</blockquote>
+<p>获取代码也非常简单，直接通过 Git Clone 下来就可以了：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ git <span class="built_in">clone</span> git://g.csail.mit.edu/6.824-golabs-2020 6.824</span><br><span class="line">$ <span class="built_in">cd</span> 6.824</span><br></pre></td></tr></table></figure>
+
+<p>Clone 下来的代码默认已经提供了一个简单的顺序执行的 MapReduce 实现在：<code>src/main/mrsequential.go</code>；</p>
+<p>同时在 <code>mrapps/</code> 目录下，也提供了几个 MapReduce 的应用（主要是实现 Map、Reduce 两个函数），后面测试的时候会用到；</p>
+<p>可以简单的先做一个测试：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">$ <span class="built_in">cd</span> src/main</span><br><span class="line"><span class="comment"># 构建 MapReduce APP 的动态链接库</span></span><br><span class="line">$ go build -buildmode=plugin ../mrapps/wc.go</span><br><span class="line"></span><br><span class="line"><span class="comment"># 执行顺序实现的MapReduce例子</span></span><br><span class="line">$ <span class="built_in">rm</span> mr-out*</span><br><span class="line">$ go run mrsequential.go wc.so pg*.txt</span><br><span class="line"></span><br><span class="line"><span class="comment"># 验证结果</span></span><br><span class="line">$ more mr-out-0</span><br><span class="line">A 509</span><br><span class="line">ABOUT 2</span><br><span class="line">ACT 8</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>看到成功输出了文件 <code>mr-out-0</code> 就说明我们的环境是OK的！</p>
+<p>在我们开始实验之前，先看一下上面的例子到底做了点啥；</p>
+<p>首先，通过 <code>go build -buildmode=plugin ../mrapps/wc.go</code> 将 WordCount 应用编译为了动态链接库；</p>
+<blockquote>
+<p>  <strong>在后面使用的时候，使用内置的 <code>plugin</code> 库中的 <code>Lookup</code> 函数直接加载了 Map 和 Reduce 函数进行调用；</strong> </p>
+<p>  关于 <code>plugin</code> 库：</p>
+<ul>
+<li><a href="https://pkg.go.dev/plugin">https://pkg.go.dev/plugin</a></li>
+</ul>
+</blockquote>
+<p><code>mrapps/wc.go</code> 中的逻辑非常简单：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="comment">// a word-count application &quot;plugin&quot; for MapReduce.</span></span><br><span class="line"><span class="comment">// go build -buildmode=plugin wc.go</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;../mr&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;unicode&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;strings&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;strconv&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// The map function is called once for each file of input. The first</span></span><br><span class="line"><span class="comment">// argument is the name of the input file, and the second is the</span></span><br><span class="line"><span class="comment">// file&#x27;s complete contents. You should ignore the input file name,</span></span><br><span class="line"><span class="comment">// and look only at the contents argument. The return value is a slice</span></span><br><span class="line"><span class="comment">// of key/value pairs.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Map</span><span class="params">(filename <span class="type">string</span>, contents <span class="type">string</span>)</span></span> []mr.KeyValue &#123;</span><br><span class="line">	<span class="comment">// function to detect word separators.</span></span><br><span class="line">	ff := <span class="function"><span class="keyword">func</span><span class="params">(r <span class="type">rune</span>)</span></span> <span class="type">bool</span> &#123; <span class="keyword">return</span> !unicode.IsLetter(r) &#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// split contents into an array of words.</span></span><br><span class="line">	words := strings.FieldsFunc(contents, ff)</span><br><span class="line"></span><br><span class="line">	kva := []mr.KeyValue&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> _, w := <span class="keyword">range</span> words &#123;</span><br><span class="line">		kv := mr.KeyValue&#123;w, <span class="string">&quot;1&quot;</span>&#125;</span><br><span class="line">		kva = <span class="built_in">append</span>(kva, kv)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> kva</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// The reduce function is called once for each key generated by the</span></span><br><span class="line"><span class="comment">// map tasks, with a list of all the values created for that key by</span></span><br><span class="line"><span class="comment">// any map task.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Reduce</span><span class="params">(key <span class="type">string</span>, values []<span class="type">string</span>)</span></span> <span class="type">string</span> &#123;</span><br><span class="line">	<span class="comment">// return the number of occurrences of this word.</span></span><br><span class="line">	<span class="keyword">return</span> strconv.Itoa(<span class="built_in">len</span>(values))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>就是定义了 Map、Reduce 两个函数，而不必关心后面的任务是如何调度的（分布式 or 顺序执行）；</strong></p>
+<p>随后执行：<code>go run mrsequential.go wc.so pg*.txt</code> 指定了 MapReduce 动态连接库，以及提前准备好的测试文件（以 <code>pg</code> 开头）；</p>
+<p>下面来看看顺序执行的 MapReduce 的实现：</p>
+<p>src/main/mrsequential.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="comment">// simple sequential MapReduce.</span></span><br><span class="line"><span class="comment">// go run mrsequential.go wc.so pg*.txt</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;fmt&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;../mr&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;plugin&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;os&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;log&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;io/ioutil&quot;</span></span><br><span class="line"><span class="keyword">import</span> <span class="string">&quot;sort&quot;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// for sorting by key.</span></span><br><span class="line"><span class="keyword">type</span> ByKey []mr.KeyValue</span><br><span class="line"></span><br><span class="line"><span class="comment">// for sorting by key.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a ByKey)</span></span> Len() <span class="type">int</span>           &#123; <span class="keyword">return</span> <span class="built_in">len</span>(a) &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a ByKey)</span></span> Swap(i, j <span class="type">int</span>)      &#123; a[i], a[j] = a[j], a[i] &#125;</span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a ByKey)</span></span> Less(i, j <span class="type">int</span>) <span class="type">bool</span> &#123; <span class="keyword">return</span> a[i].Key &lt; a[j].Key &#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(os.Args) &lt; <span class="number">3</span> &#123;</span><br><span class="line">		fmt.Fprintf(os.Stderr, <span class="string">&quot;Usage: mrsequential xxx.so inputfiles...\n&quot;</span>)</span><br><span class="line">		os.Exit(<span class="number">1</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	mapf, reducef := loadPlugin(os.Args[<span class="number">1</span>])</span><br><span class="line"></span><br><span class="line">	<span class="comment">// read each input file,</span></span><br><span class="line">	<span class="comment">// pass it to Map,</span></span><br><span class="line">	<span class="comment">// accumulate the intermediate Map output.</span></span><br><span class="line">	intermediate := []mr.KeyValue&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> _, filename := <span class="keyword">range</span> os.Args[<span class="number">2</span>:] &#123;</span><br><span class="line">		file, err := os.Open(filename)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Fatalf(<span class="string">&quot;cannot open %v&quot;</span>, filename)</span><br><span class="line">		&#125;</span><br><span class="line">		content, err := ioutil.ReadAll(file)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			log.Fatalf(<span class="string">&quot;cannot read %v&quot;</span>, filename)</span><br><span class="line">		&#125;</span><br><span class="line">		file.Close()</span><br><span class="line">		kva := mapf(filename, <span class="type">string</span>(content))</span><br><span class="line">		intermediate = <span class="built_in">append</span>(intermediate, kva...)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// a big difference from real MapReduce is that all the</span></span><br><span class="line">	<span class="comment">// intermediate data is in one place, intermediate[],</span></span><br><span class="line">	<span class="comment">// rather than being partitioned into NxM buckets.</span></span><br><span class="line"></span><br><span class="line">	sort.Sort(ByKey(intermediate))</span><br><span class="line"></span><br><span class="line">	oname := <span class="string">&quot;mr-out-0&quot;</span></span><br><span class="line">	ofile, _ := os.Create(oname)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// call Reduce on each distinct key in intermediate[],</span></span><br><span class="line">	<span class="comment">// and print the result to mr-out-0.</span></span><br><span class="line">	i := <span class="number">0</span></span><br><span class="line">	<span class="keyword">for</span> i &lt; <span class="built_in">len</span>(intermediate) &#123;</span><br><span class="line">		j := i + <span class="number">1</span></span><br><span class="line">		<span class="keyword">for</span> j &lt; <span class="built_in">len</span>(intermediate) &amp;&amp; intermediate[j].Key == intermediate[i].Key &#123;</span><br><span class="line">			j++</span><br><span class="line">		&#125;</span><br><span class="line">		values := []<span class="type">string</span>&#123;&#125;</span><br><span class="line">		<span class="keyword">for</span> k := i; k &lt; j; k++ &#123;</span><br><span class="line">			values = <span class="built_in">append</span>(values, intermediate[k].Value)</span><br><span class="line">		&#125;</span><br><span class="line">		output := reducef(intermediate[i].Key, values)</span><br><span class="line"></span><br><span class="line">		<span class="comment">// this is the correct format for each line of Reduce output.</span></span><br><span class="line">		fmt.Fprintf(ofile, <span class="string">&quot;%v %v\n&quot;</span>, intermediate[i].Key, output)</span><br><span class="line"></span><br><span class="line">		i = j</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	ofile.Close()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// load the application Map and Reduce functions</span></span><br><span class="line"><span class="comment">// from a plugin file, e.g. ../mrapps/wc.so</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">loadPlugin</span><span class="params">(filename <span class="type">string</span>)</span></span> (<span class="function"><span class="keyword">func</span><span class="params">(<span class="type">string</span>, <span class="type">string</span>)</span></span> []mr.KeyValue, <span class="function"><span class="keyword">func</span><span class="params">(<span class="type">string</span>, []<span class="type">string</span>)</span></span> <span class="type">string</span>) &#123;</span><br><span class="line">	p, err := plugin.Open(filename)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">&quot;cannot load plugin %v&quot;</span>, filename)</span><br><span class="line">	&#125;</span><br><span class="line">	xmapf, err := p.Lookup(<span class="string">&quot;Map&quot;</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">&quot;cannot find Map in %v&quot;</span>, filename)</span><br><span class="line">	&#125;</span><br><span class="line">	mapf := xmapf.(<span class="function"><span class="keyword">func</span><span class="params">(<span class="type">string</span>, <span class="type">string</span>)</span></span> []mr.KeyValue)</span><br><span class="line">	xreducef, err := p.Lookup(<span class="string">&quot;Reduce&quot;</span>)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatalf(<span class="string">&quot;cannot find Reduce in %v&quot;</span>, filename)</span><br><span class="line">	&#125;</span><br><span class="line">	reducef := xreducef.(<span class="function"><span class="keyword">func</span><span class="params">(<span class="type">string</span>, []<span class="type">string</span>)</span></span> <span class="type">string</span>)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> mapf, reducef</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>直接从 main 函数开始看：</p>
+<p>首先从动态连接库中获取 Map 和 Reduce 函数；</p>
+<p>随后，读取每一个输入的文件，并使用 Map 函数处理，并将处理后的结果存入 intermediate 临时数组中；</p>
+<p>紧接着，对 intermediate 临时数组在 Key 上排序，这也是 MapReduce 论文中要求的；</p>
+<p>最后，由于按照 Key 值排序后的中间数组相同的 Key 值连续排列，因此我们对相同 Key 值调用 Reduce 进行聚合，并输出到文件中；</p>
+<p>至此我们的顺序执行 MapReduce 结束；</p>
+<p>可以看到，顺序执行的 MapReduce 的实现是非常简单的；下面我们来看我们要做的实验；</p>
+<br/>
+
+<h2 id="实验内容分析"><a href="#实验内容分析" class="headerlink" title="实验内容分析"></a><strong>实验内容分析</strong></h2><p>根据实验内容，我们要做的是：<strong>实现一个 单机、多进程、并行 版本的 MapReduce；</strong></p>
+<p>实现包括两个独立的部分：单独的 master 和 多个并行的 worker 进程，两者通过 rpc 调用通信；</p>
+<p>每个 worker 进程都会向 master 索要任务、读取任务指定的文件、执行任务并最终将结果写入多个输出文件中；</p>
+<p>并且，为了模拟在分布式场景下程序的 worker 挂掉的场景，master 需要处理当一段时间内 worker 都没有完成任务（实验指定的是10秒钟），则需要将任务交给其他 worker 去做；</p>
+<p>实验已经提供了部分代码： <code>main/mrmaster.go</code> 和 <code>main/mrworker.go</code>（无需修改）；</p>
+<p>只需要将实现写在： <code>mr/master.go</code>, <code>mr/worker.go</code>、 <code>mr/rpc.go</code> 即可；</p>
+<p>同时，也提供了在开发的时候进行测试的方法：</p>
+<p>首先，启动 master 节点：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go run mrmaster.go pg-*.txt</span><br></pre></td></tr></table></figure>
+
+<p>随后在多个新的终端启动多个 worker 节点：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go run mrworker.go wc.so</span><br></pre></td></tr></table></figure>
+
+<p>即可测试；</p>
+<p>同时，实验提供了测试脚本用于整个实验的测试：<code>test-mr.sh</code>；</p>
+<p>关于实验的一些规则：</p>
+<ul>
+<li>在处理 Map 任务时，需要将中间产物 Key 切分为 <code>nReduce</code> 个 reduce 任务，这个参数是调用 <code>MakeMaster()</code> 函数时指定的！</li>
+<li>第 X 个 Reduce 任务的产物应当命名为：<code>mr-out-X</code>；</li>
+<li>最终输出文件 <code>mr-out-X</code> 应当每行一个输出，并且采用 <code>&quot;%v %v&quot;</code> 格式（和 <code>main/mrsequential.go</code> 一致）；</li>
+<li>当 <code>main/mrmaster.go</code> 调用  <code>mr/master.go</code> 的 <code>Done</code> 函数返回 true 时，其认为所有任务都已完成，将会退出；</li>
+<li>当所有的任务都结束，worker 应当退出；一个简单的实现是：当调用 <code>call</code> rpc 与 master 通信失败时，认为任务结束；不过一个另外一个做法是当任务结束后，master 下发一个 <code>请退出</code> 的任务，交给 worker 去执行；</li>
+</ul>
+<p>一些提示：</p>
+<ul>
+<li>在开发测试时，当你修改了 <code>mr/</code> 目录下的文件，你应该重新使用 <code>go build -buildmode=plugin ../mrapps/wc.go</code> 编译；</li>
+<li>一个合理的中间结果文件的命名为： <code>mr-X-Y</code>，X 表示 Map 任务Id、Y 表示 Reduce 任务Id；</li>
+<li>可以使用  <code>ihash(key)</code> 函数来计算由哪个 worker 来执行对应 Key 的 Reduce 任务；</li>
+<li>master 节点会被并发的访问，不要忘了对共享的数据加锁；</li>
+<li>有的时候 worker 需要等待，比如：只有在所有的 Map 任务都完成，才能开启 Reduce 任务；一个实现方案是：worker 定期轮询 master 去索要任务的时候来询问；另一个实现方案是由 master 节点来定期轮询是否所有的任务都已经完成；</li>
+<li>master 节点无法区分一个 worker 节点到底是挂掉了，还是执行了一个任务太长时间；最好的做法是master等待一段时间后，放弃那些执行时间过长（本实验中为10s）的 worker，认为他们已经挂了，并重新分配任务；</li>
+<li>可以使用 <code>mrapps/crash.go</code> 测试节点挂掉后的恢复，他的 Map、Reduce 函数会随机直接退出（模拟 worker 节点在被分配任务后挂掉）；</li>
+<li><font color="#f00"><strong>为了保证没有 worker 节点能够看到由于节点崩溃而写入一半的最终产出文件，在 MapReduce 论文中提出了，先创建临时文件，并且在全部写入完成后，重命名的方法（很赞！）；你也应当使用这种方法；</strong></font></li>
+</ul>
+<p>通过上面的任务，我们可以总结出：</p>
+<p>对于 master 节点要做到：</p>
+<ul>
+<li><strong>在启动时根据指定的输入文件及 nReduce 数，生成 Map Task 及 Reduce Task；</strong></li>
+<li><strong>通过 RPC 的方式为 Workers 分配可用的 Task 去处理（由 Worker 调用去获取）；</strong></li>
+<li><strong>校验 Task 的完成情况，当所有 Map Task 完成后，推进到 Reduce 阶段，开始派发 Reduce Task；在所有 Reduce Task 完成后标记作业已完成并退出；</strong></li>
+<li><strong>同时，由于 worker 节点存在挂掉的可能，在 master 校验 Task 完成情况时，需要 追踪已分配的 Task 的运行情况，在 Task 超出 10s 仍未完成时，将该 Task 重新分配给其他 Worker 重试；</strong></li>
+</ul>
+<p>对于 worker 节点：</p>
+<ul>
+<li><strong>当空闲时调用 RPC 向 master 获取任务；</strong></li>
+<li><strong>获取到任务后，根据不同任务类型调用 Map、Reduce 并输出中间、最终文件；</strong></li>
+</ul>
+<br/>
+
+<p>一个难点在于：在执行 Reduce 任务时，需要根据指定的 nReduce 数进行分配；</p>
+<p>解决方法是：我们可以通过计算 <code>ihash(key)</code> 来定义中间产物文件，来记录每个 Reduce 所在的文件；</p>
+<p>另一个难点在于：有可能存在两个 worker 同时执行同一个任务的情况，此时要保证只有一个 Worker 能够完成结果数据的最终写出，以免出现冲突导致最终观察到重复或缺失的结果数据；</p>
+<p>我们可以通过实验给出的提示：通过临时文件的方法解决；即：</p>
+<p>Worker 写出数据时，先写出到临时文件（Write），最终确认没有问题后再将其重命名（Commit）为正式结果文件，区分开了 Write 和 Commit 的过程；</p>
+<p>而 Commit 的过程可以是 Master 来执行，也可以是 Worker 来执行：</p>
+<ul>
+<li><strong>Master Commit</strong>：Worker 向 Master 汇报 Task 完成，<strong>Master 确认该 Task 是否仍属于该 Worker</strong>，是则进行结果文件 Commit，否则直接忽略；</li>
+<li><strong>Worker Commit</strong>：Worker 向 Master 汇报 Task 完成，Master 确认该 Task 是否仍属于该 Worker 并响应 Worker，是则 Worker 进行结果文件 Commit，再向 Master 汇报 Commit 完成；</li>
+</ul>
+<p>上面两种方法都是可行的；</p>
+<p>我的实现选择了 Master Commit，因为可以少一次 RPC 调用，在实现上会更简单；但缺点是所有 Task 最终 Commit 都由 Master 完成，在极端场景下会让 Master 变成整个 MR 过程的性能瓶颈；</p>
+<br/>
+
+<h2 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a><strong>代码实现</strong></h2><p>代码的实现主要分为三个部分，并且实验已经提供好了对应的文件：</p>
+<ul>
+<li>Master 与 Worker 间的 RPC 通信，对应 mr/rpc.go 文件；</li>
+<li>Master 调度逻辑，对应 mr/master.go 文件；</li>
+<li>Worker 计算逻辑，对应 mr/worker.go 文件；</li>
+</ul>
+<p>下面我们一个一个来看；</p>
+<h3 id="RPC通信"><a href="#RPC通信" class="headerlink" title="RPC通信"></a><strong>RPC通信</strong></h3><p>RPC 通信主要是用来：</p>
+<ul>
+<li><strong>Query</strong>：Worker 请求 Master 获取 Map 或 Reduce 任务；</li>
+<li><strong>Commit</strong>：Worker 向 Master 确认上一个任务已经完成；</li>
+</ul>
+<p>在实现时，因为上面两个步骤可以合并为一个步骤，因此，可以用一个 RPC 调用完成上面两个事情；</p>
+<p><strong>即：在 Query 下一个任务的时候，Commit 上一个任务；</strong></p>
+<p><strong>特别的：</strong></p>
+<ul>
+<li><strong>在 Query 第一个任务的时候，没有上一个任务，所以不需要 Commit；</strong></li>
+<li><strong>存在 Query 任务的时候，不存在任务的可能，此时可以 Commit 上一个任务，但是不会返回下一个任务；</strong></li>
+</ul>
+<p>RPC 的请求与相应结构体定义如下：</p>
+<p>src/mr/rpc.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// TaskTypeOpt The MapReduce task type</span></span><br><span class="line"><span class="keyword">type</span> TaskTypeOpt <span class="type">string</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	TaskTypeMap      TaskTypeOpt = <span class="string">&quot;Map&quot;</span></span><br><span class="line">	TaskTypeReduce   TaskTypeOpt = <span class="string">&quot;Reduce&quot;</span></span><br><span class="line">	TaskTypeFinished TaskTypeOpt = <span class="string">&quot;Finished&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// TaskInfo The MapReduce task</span></span><br><span class="line"><span class="keyword">type</span> TaskInfo <span class="keyword">struct</span> &#123;</span><br><span class="line">	Id       <span class="type">string</span></span><br><span class="line">	Type     TaskTypeOpt</span><br><span class="line">	Index    <span class="type">int</span></span><br><span class="line">	File     <span class="type">string</span></span><br><span class="line">	WorkerId <span class="type">string</span></span><br><span class="line">	Deadline time.Time</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// AckAndQueryNewTaskRequest RPC request for Workers to query a task after finished previously task</span></span><br><span class="line"><span class="keyword">type</span> AckAndQueryNewTaskRequest <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// The finished previous task index (if it has finished task)</span></span><br><span class="line">	PreviousTaskIndex <span class="type">int</span></span><br><span class="line">	TaskType          TaskTypeOpt</span><br><span class="line">	WorkerId          <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// AckAndQueryNewTaskResponse RPC response for Workers to query a task</span></span><br><span class="line"><span class="keyword">type</span> AckAndQueryNewTaskResponse <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// The task id(filename) for Map or Reduce to yield results(if there has)</span></span><br><span class="line">	Task            *TaskInfo</span><br><span class="line">	MapWorkerCnt    <span class="type">int</span></span><br><span class="line">	ReduceWorkerCnt <span class="type">int</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先定义了 <code>TaskTypeOpt</code> 类型，标志任务的类型，包括三种：</p>
+<ul>
+<li><strong><code>&quot;Map&quot;</code>：Map 任务；</strong></li>
+<li><strong><code>&quot;Reduce&quot;</code>：Reduce 任务；</strong></li>
+<li><strong><code>&quot;Finished&quot;</code>：任务已完成，提示 Worker 可以退出；</strong></li>
+</ul>
+<p><code>TaskInfo</code> 表示一个任务实体，包括：</p>
+<ul>
+<li><strong>Id：任务的Id；</strong></li>
+<li><strong>Type：任务的类型；</strong></li>
+<li><strong>Index：任务的序号，表示是第几个任务；</strong></li>
+<li><strong>File：任务需要处理的文件；</strong></li>
+<li><strong>WorkerId：目前执行该任务的 Worker 的Id；</strong></li>
+<li><strong>Deadline：任务的结束时间（本实验为10秒钟）；</strong></li>
+</ul>
+<p>我们 RPC 的名称为 <code>AckAndQueryNewTask</code>，包括 Request 和 Response 两个部分；</p>
+<p><code>AckAndQueryNewTaskRequest</code> 包括：</p>
+<ul>
+<li><code>PreviousTaskIndex</code>：上一个执行完成任务的索引，用于 Commit 上一个任务；</li>
+<li><code>TaskType</code>：上一个执行完成任务的类型，用于 Commit 上一个任务；</li>
+<li><code>WorkerId</code>：上一个执行完成任务的 WorkerId（本 WorkerId），用于 Master 校验到底是哪个 Worker 执行任务（Failover 策略）；</li>
+</ul>
+<p><code>AckAndQueryNewTaskResponse</code> 包括：</p>
+<ul>
+<li><strong>Task</strong>：<code>*TaskInfo</code> 类型，新申请的任务，如果不存在可调度的任务，则返回 nil；</li>
+<li><strong>MapWorkerCnt：</strong>分配执行 Map 的 Worker 数，用于生成临时文件；</li>
+<li><strong>ReduceWorkerCnt：</strong>分配执行 Reduce 的 Worker 数，用于生成临时文件；</li>
+</ul>
+<br/>
+
+<h3 id="Master调度"><a href="#Master调度" class="headerlink" title="Master调度"></a><strong>Master调度</strong></h3><h4 id="Master结构体"><a href="#Master结构体" class="headerlink" title="Master结构体"></a><strong>Master结构体</strong></h4><p>Master 主要是完成下面几个功能：</p>
+<ul>
+<li><strong>实现 <code>AckAndQueryNewTask</code> 方法，实现任务的分配、上一个任务的 Commit；</strong></li>
+<li><strong>实现各个任务状态之间的切换：Map =&gt; Reduce =&gt; Finished；</strong></li>
+<li><strong>定时轮询各个任务的执行情况，抛弃超时的任务并重新分配；</strong></li>
+</ul>
+<p>因此，Master 需要维护下面的信息：</p>
+<ul>
+<li><strong>配置信息</strong>：<ul>
+<li>MAP Worker 数量；</li>
+<li>Reduce Worker 数量；</li>
+</ul>
+</li>
+<li><strong>调度任务信息</strong>：<ul>
+<li>当前所处阶段，是 MAP、REDUCE、Finished；</li>
+<li>所有仍未完成的 Task 及其所属的 Worker 和 Deadline，可以使用 Map 配合 TaskId 实现；</li>
+<li>所有仍未分配的 Task 池，用于响应 Worker 申请任务及 Failover 时的重新分配，可以使用 Channel 实现；</li>
+</ul>
+</li>
+</ul>
+<p>下面是 Master 结构的定义：</p>
+<p>src/mr/master.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Master <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// Use lock to avoid data race</span></span><br><span class="line">	lock sync.RWMutex</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The phase of all tasks</span></span><br><span class="line">	status TaskTypeOpt</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The count of the workers</span></span><br><span class="line">	mapCnt    <span class="type">int</span></span><br><span class="line">	reduceCnt <span class="type">int</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// All tasks</span></span><br><span class="line">	tasks <span class="keyword">map</span>[<span class="type">string</span>]*TaskInfo</span><br><span class="line">	<span class="comment">// All ongoing tasks</span></span><br><span class="line">	availableTasks <span class="keyword">chan</span> *TaskInfo</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中：</p>
+<ul>
+<li>lock 读写锁用于防止 Master 内部的状态出现 Data Race；</li>
+<li>status 记录了当前 Job 的任务状态；</li>
+<li>mapCnt、reduceCnt 记录了当前 Map、Reduce 的数量；</li>
+<li>tasks 记录了当前<strong>所有正在执行、可分配</strong>的任务；</li>
+<li>availableTasks 记录了<strong>当前可以被分配</strong>的任务；</li>
+</ul>
+<br/>
+
+<h4 id="Master初始化及启动"><a href="#Master初始化及启动" class="headerlink" title="Master初始化及启动"></a><strong>Master初始化及启动</strong></h4><p>当创建一个 Master 后主要需要做以下几个事情：</p>
+<ul>
+<li>基于指定的输入文件生成 MAP Task 到：可用 Task 池 availableTasks 以及 tasks 中；</li>
+<li>处理 Worker 的 Task 申请 RPC，从池中分配一个可用的 Task 给 Worker 并响应；</li>
+<li>处理 Worker 的 Task 完成通知，完成 Task 最终的结果数据 Commit；</li>
+<li>在 MAP Task 全部完成后，切换至 REDUCE 阶段，生成 REDUCE Task 到可用 Task 池；</li>
+<li>在 REDUCE Task 全部完成后，标记 MR 作业已完成，退出；</li>
+<li>周期轮询正在运行的 Task，如果发现 Task 运行时长超出 Deadline 后重新分配其到新的 Worker 上运行；</li>
+</ul>
+<p>Master 的初始化主要是在 <code>src/main/mrmaster.go</code> 中通过调用 <code>MakeMaster</code> 函数实现的；</p>
+<p>下面来看：</p>
+<p>src/mr/master.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// MakeMaster create a Master.</span></span><br><span class="line"><span class="comment">// main/mrmaster.go calls this function.</span></span><br><span class="line"><span class="comment">// nReduce is the number of reduce tasks to use.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">MakeMaster</span><span class="params">(files []<span class="type">string</span>, nReduce <span class="type">int</span>)</span></span> *Master &#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 1: Create master</span></span><br><span class="line">	m := &amp;Master&#123;</span><br><span class="line">		status:         TaskTypeMap,</span><br><span class="line">		mapCnt:         <span class="built_in">len</span>(files),</span><br><span class="line">		reduceCnt:      nReduce,</span><br><span class="line">		tasks:          <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="type">string</span>]*TaskInfo),</span><br><span class="line">		availableTasks: <span class="built_in">make</span>(<span class="keyword">chan</span> *TaskInfo, max(<span class="built_in">len</span>(files), nReduce)),</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 2: Store the data</span></span><br><span class="line">	<span class="keyword">for</span> idx, file := <span class="keyword">range</span> files &#123;</span><br><span class="line">		task := &amp;TaskInfo&#123;</span><br><span class="line">			Id:    generateTaskId(TaskTypeMap, idx),</span><br><span class="line">			Type:  TaskTypeMap,</span><br><span class="line">			Index: idx,</span><br><span class="line">			File:  file,</span><br><span class="line">		&#125;</span><br><span class="line">		m.tasks[task.Id] = task  <span class="comment">// Store the tasks</span></span><br><span class="line">		m.availableTasks &lt;- task <span class="comment">// Send the task to the channel</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 3: Start master server</span></span><br><span class="line">	m.server()</span><br><span class="line">	infof(<span class="string">&quot;master server started: %v&quot;</span>, m)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 4: Start workers heartbeats checker</span></span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> &#123;</span><br><span class="line">			time.Sleep(<span class="number">500</span> * time.Millisecond)</span><br><span class="line">			m.checkWorkers()</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> m</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码首先初始化了 Master 的各个属性，将最初状态设置为 Map 类型的 Task；</p>
+<p>随后，遍历输入的文件，为每个文件创建 Task，并存入 tasks 和 availableTasks 中；</p>
+<p>这里生成 TaskId 的函数非常简单：</p>
+<p>src/mr/rpc.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// generateTaskId Generate TaskId for the given task</span></span><br><span class="line"><span class="comment">//  The id follows the format: &quot;taskType-taskIndex&quot;</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">generateTaskId</span><span class="params">(taskType TaskTypeOpt, index <span class="type">int</span>)</span></span> <span class="type">string</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">&quot;%s-%d&quot;</span>, taskType, index)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>随后，启动 RPC Server：</p>
+<p>src/mr/master.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// start a thread that listens for RPCs from worker.go</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Master)</span></span> server() &#123;</span><br><span class="line">	_ = rpc.Register(m)</span><br><span class="line">	rpc.HandleHTTP()</span><br><span class="line">	<span class="comment">//l, e := net.Listen(&quot;tcp&quot;, &quot;:1234&quot;)</span></span><br><span class="line">	sockname := masterSock()</span><br><span class="line">	_ = os.Remove(sockname)</span><br><span class="line">	l, e := net.Listen(<span class="string">&quot;unix&quot;</span>, sockname)</span><br><span class="line">	<span class="keyword">if</span> e != <span class="literal">nil</span> &#123;</span><br><span class="line">		log.Fatal(<span class="string">&quot;listen error:&quot;</span>, e)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">go</span> http.Serve(l, <span class="literal">nil</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里只是使用实验提供的方法，并未进行修改；</p>
+<p>最后，在一个新开的协程中调用 checkWorkers 轮询我们的任务（后文会讲）；</p>
+<p>至此，我们的 Master 创建并初始化完毕，会在 <code>src/main/mrmaster.go</code> 中调用 <code>Done</code> 方法等待退出：</p>
+<p>src/main/mrmaster.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">m := mr.MakeMaster(os.Args[<span class="number">1</span>:], <span class="number">10</span>)</span><br><span class="line"><span class="keyword">for</span> m.Done() == <span class="literal">false</span> &#123;</span><br><span class="line">    time.Sleep(time.Second)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因此，我们只需要在 Master 处理完所有任务后，在 Done 中返回 true 即可！</p>
+<br/>
+
+<h4 id="Task的获取与分配"><a href="#Task的获取与分配" class="headerlink" title="Task的获取与分配"></a><strong>Task的获取与分配</strong></h4><p>Task的获取与分配主要是通过 RPC 方法 <code>AckAndQueryNewTask</code> 实现的：</p>
+<p>src/mr/master.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Master)</span></span> AckAndQueryNewTask(req *AckAndQueryNewTaskRequest,</span><br><span class="line">	resp *AckAndQueryNewTaskResponse) <span class="type">error</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 1: Mark previous task finished if necessary</span></span><br><span class="line">	<span class="keyword">if</span> req.TaskType != <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">		err := m.handlePreviousTask(req)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			errorf(<span class="string">&quot;handlePreviousTask err: %v&quot;</span>, err)</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 2: Get the next task</span></span><br><span class="line">	task, ok := &lt;-m.availableTasks</span><br><span class="line">	<span class="keyword">if</span> !ok &#123; <span class="comment">// Channel closed: no available tasks</span></span><br><span class="line">		m.lock.RLock()</span><br><span class="line">		<span class="keyword">defer</span> m.lock.RUnlock()</span><br><span class="line">		retTask := &amp;TaskInfo&#123;&#125;</span><br><span class="line">		<span class="keyword">if</span> m.status == TaskTypeFinished &#123;</span><br><span class="line">			retTask.Type = TaskTypeFinished</span><br><span class="line">		&#125;</span><br><span class="line">		resp.Task = retTask</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 3: Assign the task to the worker</span></span><br><span class="line">	m.lock.Lock()</span><br><span class="line">	<span class="keyword">defer</span> m.lock.Unlock()</span><br><span class="line">	infof(<span class="string">&quot;Assign task %v to worker %s&quot;</span>, task, req.WorkerId)</span><br><span class="line">	task.WorkerId = req.WorkerId</span><br><span class="line">	task.Deadline = time.Now().Add(<span class="number">10</span> * time.Second)</span><br><span class="line">	m.tasks[generateTaskId(task.Type, task.Index)] = task</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 4: Handle response</span></span><br><span class="line">	resp.Task = &amp;TaskInfo&#123;</span><br><span class="line">		Id:       task.Id,</span><br><span class="line">		Type:     task.Type,</span><br><span class="line">		Index:    task.Index,</span><br><span class="line">		File:     task.File,</span><br><span class="line">		WorkerId: task.WorkerId,</span><br><span class="line">		Deadline: task.Deadline,</span><br><span class="line">	&#125;</span><br><span class="line">	resp.MapWorkerCnt = m.mapCnt</span><br><span class="line">	resp.ReduceWorkerCnt = m.reduceCnt</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>正如我们前面所讲的，当 Worker 发送一个新的 Task 请求时，会提交上一次的任务；</p>
+<p>因此代码首先判断了是否存在上一个任务，如果存在上一个任务，则调用 <code>handlePreviousTask</code> 首先处理上一个任务（见后文）；</p>
+<p>随后通过 <code>&lt;-m.availableTasks</code> 获取下一个任务；这里需要注意：</p>
+<ul>
+<li><strong>如果 Channel 未关闭，并且没有下一个任务，则会在此阻塞等待下一个任务；</strong></li>
+<li><strong>如果 Channel 已经关闭，则 ok 会是 false，</strong></li>
+</ul>
+<blockquote>
+<p>  对上面有疑问的可以参考这个简单的例子：</p>
+<ul>
+<li><a href="https://go.dev/play/p/YUbEDF2XaCG">https://go.dev/play/p/YUbEDF2XaCG</a></li>
+</ul>
+</blockquote>
+<p>因此，如果 Channel 已经关闭，并且当前的任务状态为 <code>Finished</code> 我们只需要给 Worker 发送任务已经完成的任务响应即可！</p>
+<p>否则，如果我们获取到了任务，那么我们需要设置：</p>
+<ul>
+<li>执行这个任务的 WorkerId；</li>
+<li>任务的超时时间 Deadline；</li>
+</ul>
+<p>并将它写入我们的 tasks 中用于跟踪任务状态；</p>
+<p>最后，响应我们的 Worker 即可！</p>
+<br/>
+
+<h4 id="处理前一个提交的Task"><a href="#处理前一个提交的Task" class="headerlink" title="处理前一个提交的Task"></a><strong>处理前一个提交的Task</strong></h4><p>前面说到，在 RPC 的第一步，如果存在前一个提交的任务，则会调用 <code>handlePreviousTask</code> 处理上一个任务；</p>
+<p>下面我们来看这里：</p>
+<p>src/mr/master.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	taskFinishHandlerMap = <span class="keyword">map</span>[TaskTypeOpt]<span class="function"><span class="keyword">func</span><span class="params">(workerId <span class="type">string</span>, taskIdx, reduceCnt <span class="type">int</span>)</span></span> <span class="type">error</span>&#123;</span><br><span class="line">		TaskTypeMap:    handleFinishedMapTask,</span><br><span class="line">		TaskTypeReduce: handleFinishedReduceTask,</span><br><span class="line">	&#125;</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// handle the previous finished task</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Master)</span></span> handlePreviousTask(req *AckAndQueryNewTaskRequest) <span class="type">error</span> &#123;</span><br><span class="line"></span><br><span class="line">	previousTaskId := generateTaskId(req.TaskType, req.PreviousTaskIndex)</span><br><span class="line"></span><br><span class="line">	m.lock.Lock()</span><br><span class="line">	<span class="keyword">defer</span> m.lock.Unlock()</span><br><span class="line">	taskInfo, exists := m.tasks[previousTaskId]</span><br><span class="line">	<span class="keyword">if</span> exists &#123;</span><br><span class="line">		<span class="keyword">if</span> taskInfo.WorkerId == req.WorkerId &#123; <span class="comment">// This task belongs to the worker</span></span><br><span class="line">			infof(<span class="string">&quot;Mark task [%v] finished on worker %s&quot;</span>, taskInfo, req.WorkerId)</span><br><span class="line"></span><br><span class="line">			<span class="comment">// Step 1: Handle the previous finished task</span></span><br><span class="line">			handler, handlerExists := taskFinishHandlerMap[taskInfo.Type]</span><br><span class="line">			<span class="keyword">if</span> !handlerExists || handler == <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">return</span> fmt.Errorf(<span class="string">&quot;handler not found for task: %v&quot;</span>, taskInfo)</span><br><span class="line">			&#125;</span><br><span class="line">			err := handler(req.WorkerId, req.PreviousTaskIndex, m.reduceCnt)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				errorf(<span class="string">&quot;Failed to handle previous task: %v&quot;</span>, err)</span><br><span class="line">				<span class="keyword">return</span> err</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="built_in">delete</span>(m.tasks, previousTaskId)</span><br><span class="line"></span><br><span class="line">			<span class="comment">// Step 2: Transit job phase if necessary</span></span><br><span class="line">			<span class="keyword">if</span> <span class="built_in">len</span>(m.tasks) &lt;= <span class="number">0</span> &#123;</span><br><span class="line">				m.transit()</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125; <span class="keyword">else</span> &#123; <span class="comment">// The task is no longer belongs to this worker</span></span><br><span class="line">			infof(<span class="string">&quot;Task %v is no longer belongs to this worker&quot;</span>, taskInfo)</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123; <span class="comment">// Previous task not found in task map(worker retry ack maybe)!</span></span><br><span class="line">		warnf(<span class="string">&quot;[Warn] Previous task: %v not found in map&quot;</span>, taskInfo)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先创建上一个任务的Id：previousTaskId，这也是我们 Map 中的 Key；</p>
+<p>随后，从 Map 中取出这个 Task（如果不存在，则无需处理了！）；</p>
+<p>接下来校验这个任务是否属于当前提交任务的 Worker（<code>taskInfo.WorkerId == req.WorkerId</code>）：</p>
+<p>如果当前任务已经不属于当前提交任务的 Worker，那么我们直接忽略掉即可！</p>
+<blockquote>
+<p>  <font color="#f00"><strong>这里就避免了由于 Fallover 处理而导致的多个 Worker 同时处理同一个 Task 并提交的问题！</strong></font></p>
+</blockquote>
+<p>否则，这是一个我们需要处理的 Commit，那么我们从 <code>taskFinishHandlerMap</code> 中获取到不同类型的任务对应的 Handler 进行处理；</p>
+<p>当处理成功后，我们从 tasks 中去掉这个任务；</p>
+<p>并且如果当前所有的任务都已处理完成，那么调用 <code>transit</code> 来推进整个 Job 的状态；</p>
+<br/>
+
+<h4 id="处理Map和Reduce类型任务的Handler"><a href="#处理Map和Reduce类型任务的Handler" class="headerlink" title="处理Map和Reduce类型任务的Handler"></a><strong>处理Map和Reduce类型任务的Handler</strong></h4><p>对于不同的任务类型的处理函数是通过下面的 Map 中获取的：</p>
+<p>src/mr/master.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	taskFinishHandlerMap = <span class="keyword">map</span>[TaskTypeOpt]<span class="function"><span class="keyword">func</span><span class="params">(workerId <span class="type">string</span>, taskIdx, reduceCnt <span class="type">int</span>)</span></span> <span class="type">error</span>&#123;</span><br><span class="line">		TaskTypeMap:    handleFinishedMapTask,</span><br><span class="line">		TaskTypeReduce: handleFinishedReduceTask,</span><br><span class="line">	&#125;</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>这两个函数的实现如下：</p>
+<p>src/mr/master.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// The map-type task finished handler</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">handleFinishedMapTask</span><span class="params">(workerId <span class="type">string</span>, taskIdx, reduceCnt <span class="type">int</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	<span class="comment">// Mark the task&#x27;s temporary file to final file(Rename)</span></span><br><span class="line">	<span class="keyword">for</span> reduceIdx := <span class="number">0</span>; reduceIdx &lt; reduceCnt; reduceIdx++ &#123;</span><br><span class="line">		tmpMapFileName := tmpMapOutFile(workerId, taskIdx, reduceIdx)</span><br><span class="line">		finalMapOutFileName := finalMapOutFile(taskIdx, reduceIdx)</span><br><span class="line">		err := os.Rename(tmpMapFileName, finalMapOutFileName)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			errorf(<span class="string">&quot;Failed to mark map output file `%s` as final: %e&quot;</span>, tmpMapFileName, err)</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	infof(<span class="string">&quot;handleFinishedMapTask success: workerId: %s, taskIdx: %d&quot;</span>, workerId, taskIdx)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// The reduce-type task finished handler</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">handleFinishedReduceTask</span><span class="params">(workerId <span class="type">string</span>, taskIdx, _ <span class="type">int</span>)</span></span> <span class="type">error</span> &#123;</span><br><span class="line">	<span class="comment">// Mark the task&#x27;s temporary file to final file(Rename)</span></span><br><span class="line">	tmpReduceFileName := tmpReduceOutFile(workerId, taskIdx)</span><br><span class="line">	finalReduceOutFileName := finalReduceOutFile(taskIdx)</span><br><span class="line">	err := os.Rename(tmpReduceFileName, finalReduceOutFileName)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		errorf(<span class="string">&quot;Failed to mark reduce output file `%s` as final: %v&quot;</span>, tmpReduceFileName, err)</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	infof(<span class="string">&quot;handleFinishedReduceTask success: workerId: %s, taskIdx: %d, finalReduceOutFileName: %s&quot;</span>,</span><br><span class="line">		workerId, taskIdx, finalReduceOutFileName)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// The temporary file that map-type task yield</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">tmpMapOutFile</span><span class="params">(workerId <span class="type">string</span>, taskIdx, reduceIdx <span class="type">int</span>)</span></span> <span class="type">string</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">&quot;mr-map-%s-%d-%d&quot;</span>, workerId, taskIdx, reduceIdx)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// The final file that map-type task yield(for reduce)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">finalMapOutFile</span><span class="params">(taskIdx, reduceIdx <span class="type">int</span>)</span></span> <span class="type">string</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">&quot;mr-map-%d-%d&quot;</span>, taskIdx, reduceIdx)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// The temporary file that reduce-type task yield</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">tmpReduceOutFile</span><span class="params">(workerId <span class="type">string</span>, reduceIdx <span class="type">int</span>)</span></span> <span class="type">string</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">&quot;mr-reduce-%s-%d&quot;</span>, workerId, reduceIdx)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// The final file that reduce-type task yield(the MapReduce task yield)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">finalReduceOutFile</span><span class="params">(taskIndex <span class="type">int</span>)</span></span> <span class="type">string</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">&quot;mr-out-%d&quot;</span>, taskIndex)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>两个函数的内容基本上是一样的：</p>
+<p><strong>都是首先通过任务 Id 获取到对应输出的临时文件，然后将其重命名为对应任务的最终产出文件</strong>！</p>
+<p><strong>这和我们最开始的分析是一致的！</strong></p>
+<br/>
+
+<h4 id="Job任务状态切换transit"><a href="#Job任务状态切换transit" class="headerlink" title="Job任务状态切换transit"></a><strong>Job任务状态切换transit</strong></h4><p>在前面的 RPC 调用中，如果发现某个类型（Map、Reduce）当前的任务全部完成，则会调用 <code>transit</code> 函数切换当前 Job 的状态，代码如下：</p>
+<p>src/mr/master.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Transit the job phase (from Map to Reduce)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Master)</span></span> transit() &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> m.status == TaskTypeMap &#123;</span><br><span class="line">		<span class="comment">// All map-type tasks finished, change to reduce phase</span></span><br><span class="line">		infof(<span class="string">&quot;All map-type tasks finished. Transit to REDUCE stage!&quot;</span>)</span><br><span class="line">		m.status = TaskTypeReduce</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Yield Reduce Tasks</span></span><br><span class="line">		<span class="keyword">for</span> reduceIdx := <span class="number">0</span>; reduceIdx &lt; m.reduceCnt; reduceIdx++ &#123;</span><br><span class="line">			task := &amp;TaskInfo&#123;</span><br><span class="line">				Type:  TaskTypeReduce,</span><br><span class="line">				Index: reduceIdx,</span><br><span class="line">			&#125;</span><br><span class="line">			m.tasks[generateTaskId(task.Type, task.Index)] = task</span><br><span class="line">			m.availableTasks &lt;- task</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> m.status == TaskTypeReduce &#123;</span><br><span class="line">		<span class="comment">// All reduce-type tasks finished, ready to exit</span></span><br><span class="line">		infof(<span class="string">&quot;All reduce-type tasks finished. Prepare to exit!&quot;</span>)</span><br><span class="line">		<span class="comment">// Close channel</span></span><br><span class="line">		<span class="built_in">close</span>(m.availableTasks)</span><br><span class="line">		<span class="comment">// Mark status to TaskTypeFinished for job completion</span></span><br><span class="line">		m.status = TaskTypeFinished</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>逻辑如下：</p>
+<ul>
+<li><strong>如果 Map 任务全部执行完成，则将状态切换为 Reduce，并且重新创建 Reduce 的任务；</strong></li>
+<li><strong>如果 Reduce 任务全部完成，则将状态切换为 Finished，并且关闭 availableTasks Channel；</strong></li>
+</ul>
+<br/>
+
+<h4 id="Worker状态轮询"><a href="#Worker状态轮询" class="headerlink" title="Worker状态轮询"></a><strong>Worker状态轮询</strong></h4><p>前面在创建并初始化 Master 的时候说到，初始化 Master 后，会单独起一个协程去轮询 Worker 的状态，用于清理那些超时的 Worker；</p>
+<p>这里来看这个 <code>checkWorkers</code> 函数：</p>
+<p>src/mr/master.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Check all workers heartbeats</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Master)</span></span> checkWorkers() &#123;</span><br><span class="line"></span><br><span class="line">	m.lock.Lock()</span><br><span class="line">	<span class="keyword">defer</span> m.lock.Unlock()</span><br><span class="line">	<span class="keyword">for</span> _, task := <span class="keyword">range</span> m.tasks &#123;</span><br><span class="line">		<span class="keyword">if</span> task.WorkerId != <span class="string">&quot;&quot;</span> &amp;&amp; time.Now().After(task.Deadline) &#123;</span><br><span class="line">			infof(</span><br><span class="line">				<span class="string">&quot;Found timed-out task：%v, previously running on worker %s. Prepare to re-assign...&quot;</span>,</span><br><span class="line">				task, task.WorkerId)</span><br><span class="line">			task.WorkerId = <span class="string">&quot;&quot;</span></span><br><span class="line">			m.availableTasks &lt;- task</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>主要是遍历 tasks 中的任务，如果发现超时的（<code>time.Now().After(task.Deadline)</code>），则将其 <code>WorkerId</code> 置为空，并放入 availableTasks Channel 中重新分配任务；</p>
+<blockquote>
+<p>  <font color="#f00"><strong>这里其实是可以进行优化的，即：使用小根堆从 <code>Deadline</code> 最早的一个任务进行遍历来减少开销；</strong></font></p>
+</blockquote>
+<br/>
+
+<h4 id="全部任务执行结束退出Done"><a href="#全部任务执行结束退出Done" class="headerlink" title="全部任务执行结束退出Done"></a><strong>全部任务执行结束退出Done</strong></h4><p>最后，当全部任务结束后，Master 的状态会变为：<code>Finished</code>；</p>
+<p>因此，我们只需要判断我们 Master 当前的状态是否为 <code>Finished</code> 即可：</p>
+<p>src/mr/master.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// main/mrmaster.go calls Done() periodically to find out</span></span><br><span class="line"><span class="comment">// if the entire job has finished.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(m *Master)</span></span> Done() <span class="type">bool</span> &#123;</span><br><span class="line">	m.lock.RLock()</span><br><span class="line">	<span class="keyword">defer</span> m.lock.RUnlock()</span><br><span class="line">	</span><br><span class="line">    taskPhase := m.status</span><br><span class="line">	infof(<span class="string">&quot;current task phase: %s, res task count: %d&quot;</span>, taskPhase, <span class="built_in">len</span>(m.availableTasks))</span><br><span class="line"></span><br><span class="line">	<span class="comment">// All tasks have finished</span></span><br><span class="line">	<span class="keyword">return</span> taskPhase == TaskTypeFinished</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<br/>
+
+<h3 id="Worker计算"><a href="#Worker计算" class="headerlink" title="Worker计算"></a><strong>Worker计算</strong></h3><p>Worker 的实现就比较简单了，主要是一个死循环，不断地向 Master 调用 AckAndQueryNewTask：</p>
+<ul>
+<li>Master 返回 MAP Task，则：<ul>
+<li>读取对应输入文件的内容；</li>
+<li>传递至 APP 指定的 Map 函数，得到对应的中间结果；</li>
+<li>按中间结果 Key 的 Hash 值进行分桶，保存至中间结果文件；</li>
+<li>向 Master 提交任务；</li>
+</ul>
+</li>
+<li>Master 返回 REDUCE Task，则：<ul>
+<li>读取所有属于该 REDUCE Task 的中间结果文件数据；</li>
+<li>对所有中间结果进行排序，并按 Key 值进行排序归并；</li>
+<li>传递归并后的数据至 APP 指定的 REDUCE 函数，得到最终结果；</li>
+<li>写出到中间结果文件；</li>
+<li>向 Master 提交任务；</li>
+</ul>
+</li>
+<li>Master 返回 Finished Task，表示所有任务都已经完成，直接退出循环，结束 Worker 进程；</li>
+</ul>
+<p>下面先来看 Worker 初始化的代码；</p>
+<br/>
+
+<h4 id="初始化Worker"><a href="#初始化Worker" class="headerlink" title="初始化Worker"></a><strong>初始化Worker</strong></h4><p>在 <code>main/mrworker.go</code> 中调用 <code>Worker</code> 函数对 Worker 进行初始化，代码如下：</p>
+<p>src/mr/worker.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// main/mrworker.go calls this function.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">Worker</span><span class="params">(mapFunc <span class="keyword">func</span>(<span class="type">string</span>, <span class="type">string</span>)</span></span> []KeyValue,</span><br><span class="line">	reduceFunc <span class="function"><span class="keyword">func</span><span class="params">(<span class="type">string</span>, []<span class="type">string</span>)</span></span> <span class="type">string</span>) &#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Done Your worker implementation here.</span></span><br><span class="line">	workerId := generateWorkerId()</span><br><span class="line">	infof(<span class="string">&quot;Worker %v started!\n&quot;</span>, workerId)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Fire the worker to receive tasks</span></span><br><span class="line">	<span class="keyword">var</span> previousTaskType TaskTypeOpt</span><br><span class="line">	<span class="keyword">var</span> previousTaskIndex <span class="type">int</span></span><br><span class="line">	<span class="keyword">var</span> taskErr <span class="type">error</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">// Step 1: Query Task &amp; Ack the last task</span></span><br><span class="line">		req := AckAndQueryNewTaskRequest&#123;</span><br><span class="line">			WorkerId:          workerId,</span><br><span class="line">			PreviousTaskIndex: previousTaskIndex,</span><br><span class="line">			TaskType:          previousTaskType,</span><br><span class="line">		&#125;</span><br><span class="line">		resp := AckAndQueryNewTaskResponse&#123;&#125;</span><br><span class="line">		succeed := call(<span class="string">&quot;Master.AckAndQueryNewTask&quot;</span>, &amp;req, &amp;resp)</span><br><span class="line">		<span class="keyword">if</span> !succeed &#123;</span><br><span class="line">			errorf(<span class="string">&quot;Failed to call AckAndQueryNewTask, retry 1 second later&quot;</span>)</span><br><span class="line">			time.Sleep(time.Second)</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		infof(<span class="string">&quot;Call AckAndQueryNewTaskResponse success! req: %v, resp: %v&quot;</span>, &amp;req, &amp;resp)</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Extra Step: Job finished, exit</span></span><br><span class="line">		<span class="keyword">if</span> resp.Task.Type == TaskTypeFinished &#123;</span><br><span class="line">			<span class="comment">// Job finished, exit</span></span><br><span class="line">			infof(<span class="string">&quot;Received job finish signal from master, exit&quot;</span>)</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Step 2: handle the queried task</span></span><br><span class="line">		<span class="keyword">if</span> resp.Task.Type == TaskTypeMap &#123;</span><br><span class="line">			taskErr = handleMapTask(&amp;resp, workerId, mapFunc)</span><br><span class="line">			<span class="keyword">if</span> taskErr != <span class="literal">nil</span> &#123;</span><br><span class="line">				errorf(<span class="string">&quot;Failed to handleMapTask: %v, err: %v&quot;</span>, resp.Task, taskErr)</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> resp.Task.Type == TaskTypeReduce &#123;</span><br><span class="line">			taskErr = handleReduceTask(&amp;resp, workerId, reduceFunc)</span><br><span class="line">			<span class="keyword">if</span> taskErr != <span class="literal">nil</span> &#123;</span><br><span class="line">				errorf(<span class="string">&quot;Failed to handleReduceTask: %v, err: %v&quot;</span>, resp.Task, taskErr)</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			errorf(<span class="string">&quot;No handler to handle task: %v&quot;</span>, resp.Task)</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Step 3: save finished task info, ack for the next iteration</span></span><br><span class="line">		previousTaskType = resp.Task.Type</span><br><span class="line">		previousTaskIndex = resp.Task.Index</span><br><span class="line">		infof(<span class="string">&quot;Finished task: %v on worker: %s\n&quot;</span>, resp.Task, workerId)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	infof(<span class="string">&quot;Worker %v finished!\n&quot;</span>, workerId)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Use pid as the workerId(standalone type)</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">generateWorkerId</span><span class="params">()</span></span> <span class="type">string</span> &#123;</span><br><span class="line">	<span class="keyword">return</span> strconv.Itoa(os.Getpid())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码首先通过 <code>generateWorkerId</code> 将当前Worker的 PID 作为 WorkerId（便于Debug排查问题）；</p>
+<p>随后，进入 for 循环中，首先调用 RPC 获取任务；</p>
+<blockquote>
+<p>  <strong>这里需要注意的是，首次调用时，<code>previousTaskIndex</code>、<code>previousTaskType</code> 都为空，所以不会提交任务；</strong></p>
+</blockquote>
+<p>在获取到任务之后进行判断：</p>
+<ul>
+<li>如果是 <code>Finished</code> 类型的任务，则直接退出；</li>
+<li>如果是 <code>Map</code> 或 <code>Reduce</code> 类型的任务，则分别调用不同的处理函数进行处理；</li>
+</ul>
+<p>最后，如果成功处理了任务，则将本次的任务信息赋值给 <code>previousTaskIndex</code>、<code>previousTaskType</code>，在下一个 for 循环开始后，会对 Task 进行 Commit；</p>
+<p>下面来看 Map、Reduce任务的处理；</p>
+<br/>
+
+<h4 id="处理Map任务"><a href="#处理Map任务" class="headerlink" title="处理Map任务"></a><strong>处理Map任务</strong></h4><p>和实验提供的顺序执行的 MapReduce 实现类似，这里的 Map 任务也是读取 Task 指定的文件，调用 Map 函数，并输出临时的中间结果文件；</p>
+<p>和之前不同的是，这里需要根据 Reduce 任务的个数对输出进行分桶操作，而即使对应的 Key 在哪个 Bucket 的函数，实验也已经提供了：<code>ihash</code>；</p>
+<p>Map 任务处理代码如下：</p>
+<p>src/mr/worker.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// The map-type task handler for worker</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">handleMapTask</span><span class="params">(resp *AckAndQueryNewTaskResponse,</span></span></span><br><span class="line"><span class="params"><span class="function">	workerId <span class="type">string</span>, mapFunc <span class="keyword">func</span>(<span class="type">string</span>, <span class="type">string</span>)</span></span> []KeyValue) <span class="type">error</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 1: Read task file</span></span><br><span class="line">	taskFile, err := os.Open(resp.Task.File)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		errorf(<span class="string">&quot;Failed to open map input file %s: %v&quot;</span>, resp.Task.File, err)</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	content, err := ioutil.ReadAll(taskFile)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		errorf(<span class="string">&quot;Failed to read map input file %s: %v&quot;</span>, resp.Task.File, err)</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 2: Use MapFunc to yield intermediate results</span></span><br><span class="line">	<span class="comment">// Key: FileName, Value: FileContent</span></span><br><span class="line">	<span class="comment">// Then Hash the key by ihash func, and push result into different buckets</span></span><br><span class="line">	mapResults := mapFunc(resp.Task.File, <span class="type">string</span>(content))</span><br><span class="line">	hashedKva := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="type">int</span>][]KeyValue)</span><br><span class="line">	<span class="keyword">for</span> _, kv := <span class="keyword">range</span> mapResults &#123;</span><br><span class="line">		hashed := ihash(kv.Key) % resp.ReduceWorkerCnt</span><br><span class="line">		hashedKva[hashed] = <span class="built_in">append</span>(hashedKva[hashed], kv)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 3: Writes all intermediate results into intermediate files</span></span><br><span class="line">	<span class="keyword">for</span> idx := <span class="number">0</span>; idx &lt; resp.ReduceWorkerCnt; idx++ &#123;</span><br><span class="line">		tmpFileName := tmpMapOutFile(workerId, resp.Task.Index, idx)</span><br><span class="line">		intermediateFile, _ := os.Create(tmpFileName)</span><br><span class="line">		<span class="keyword">for</span> _, kv := <span class="keyword">range</span> hashedKva[idx] &#123;</span><br><span class="line">			<span class="comment">// The intermediate file format is: $&#123;key&#125;\t$&#123;value&#125;\n</span></span><br><span class="line">			_, err = fmt.Fprintf(intermediateFile, <span class="string">&quot;%v\t%v\n&quot;</span>, kv.Key, kv.Value)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				errorf(<span class="string">&quot;Write intermediate file: %s failed, err: %v&quot;</span>, intermediateFile, err)</span><br><span class="line">				intermediateFile.Close()</span><br><span class="line">				<span class="keyword">return</span> err</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		intermediateFile.Close()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	infof(<span class="string">&quot;Worker[%s] writes intermediate files success, task: %v&quot;</span>, workerId, resp.Task)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// use ihash(key) % NReduce to choose the reducer</span></span><br><span class="line"><span class="comment">// task number for each KeyValue emitted by Map.</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">ihash</span><span class="params">(key <span class="type">string</span>)</span></span> <span class="type">int</span> &#123;</span><br><span class="line">	h := fnv.New32a()</span><br><span class="line">	_, _ = h.Write([]<span class="type">byte</span>(key))</span><br><span class="line">	<span class="keyword">return</span> <span class="type">int</span>(h.Sum32() &amp; <span class="number">0x7fffffff</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码首先从 Task 指定的文件中读取内容；</p>
+<p>随后调用 APP 中提供的 <code>mapFunc</code>，并将得到的 Key 值进行 <code>ihash(kv.Key) % resp.ReduceWorkerCnt</code> 后，放入到对应的 hashedKva 桶中；</p>
+<p>最后，分桶写入到了不同的临时文件中！</p>
+<br/>
+
+<h4 id="处理Reduce任务"><a href="#处理Reduce任务" class="headerlink" title="处理Reduce任务"></a><strong>处理Reduce任务</strong></h4><p>Reduce 任务的实现也与顺序执行的 MapReduce 实现类似，代码如下：</p>
+<p>src/mr/worker.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// The reduce-type task handler for worker</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">handleReduceTask</span><span class="params">(resp *AckAndQueryNewTaskResponse,</span></span></span><br><span class="line"><span class="params"><span class="function">	workerId <span class="type">string</span>, reduceFunc <span class="keyword">func</span>(<span class="type">string</span>, []<span class="type">string</span>)</span></span> <span class="type">string</span>) <span class="type">error</span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 1: Read the corresponding file</span></span><br><span class="line">	<span class="keyword">var</span> lines []<span class="type">string</span></span><br><span class="line">	<span class="keyword">for</span> mi := <span class="number">0</span>; mi &lt; resp.MapWorkerCnt; mi++ &#123;</span><br><span class="line">		inputFile := finalMapOutFile(mi, resp.Task.Index)</span><br><span class="line">		file, err := os.Open(inputFile)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			errorf(<span class="string">&quot;Failed to open map output file %s: %v&quot;</span>, inputFile, err)</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		content, err := ioutil.ReadAll(file)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			errorf(<span class="string">&quot;Failed to read map output file %s: %v&quot;</span>, inputFile, err)</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		lines = <span class="built_in">append</span>(lines, strings.Split(<span class="type">string</span>(content), <span class="string">&quot;\n&quot;</span>)...)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 2: Format the lines</span></span><br><span class="line">	<span class="keyword">var</span> mapResults []KeyValue</span><br><span class="line">	<span class="keyword">for</span> _, line := <span class="keyword">range</span> lines &#123;</span><br><span class="line">		<span class="keyword">if</span> strings.TrimSpace(line) == <span class="string">&quot;&quot;</span> &#123;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line">		parts := strings.Split(line, <span class="string">&quot;\t&quot;</span>)</span><br><span class="line">		mapResults = <span class="built_in">append</span>(mapResults, KeyValue&#123;</span><br><span class="line">			Key:   parts[<span class="number">0</span>],</span><br><span class="line">			Value: parts[<span class="number">1</span>],</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 3: Sort the results</span></span><br><span class="line">	sort.Sort(ByKey(mapResults))</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 4: Write the results(Just as the mrsequential.go do!)</span></span><br><span class="line">	tmpFileName := tmpReduceOutFile(workerId, resp.Task.Index)</span><br><span class="line">	tmpFile, _ := os.Create(tmpFileName)</span><br><span class="line">	<span class="keyword">defer</span> tmpFile.Close()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Step 5: Call Reduce on each distinct key in mapResults[], and write the intermediate result.</span></span><br><span class="line">	i := <span class="number">0</span></span><br><span class="line">	<span class="keyword">for</span> i &lt; <span class="built_in">len</span>(mapResults) &#123;</span><br><span class="line">		<span class="comment">// Step 5.1: Find the same key in mapResults</span></span><br><span class="line">		j := i + <span class="number">1</span></span><br><span class="line">		<span class="keyword">for</span> j &lt; <span class="built_in">len</span>(mapResults) &amp;&amp; mapResults[j].Key == mapResults[i].Key &#123;</span><br><span class="line">			j++</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">var</span> values []<span class="type">string</span></span><br><span class="line">		<span class="keyword">for</span> k := i; k &lt; j; k++ &#123;</span><br><span class="line">			values = <span class="built_in">append</span>(values, mapResults[k].Value)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Step 5.2: Call reduceFunc</span></span><br><span class="line">		output := reduceFunc(mapResults[i].Key, values)</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Step 5.3: Save the yield reduce results to intermediate files.</span></span><br><span class="line">		_, _ = fmt.Fprintf(tmpFile, <span class="string">&quot;%v %v\n&quot;</span>, mapResults[i].Key, output)</span><br><span class="line"></span><br><span class="line">		i = j</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由于执行 Reduce 任务时，所有的 Map 任务一定都是被 Commit 过的；</p>
+<p>因此，我们可以找到所有 Map 任务最终 Commit 生成的文件并读取内容到 <code>mapResults []KeyValue</code> 中；</p>
+<p>随后，根据论文的内容，我们对结果进行排序，并对相同的 Key 进行归并；</p>
+<p>最后，和上面一样，我们将 Reduce 的结果输出到临时的文件；</p>
+<p>至此，Reduce 任务结束！</p>
+<br/>
+
+<h2 id="测试验证"><a href="#测试验证" class="headerlink" title="测试验证"></a><strong>测试验证</strong></h2><p>开发完成后，我们来进行测试；</p>
+<p>直接在 <code>src/main</code> 目录下执行 <code>./test-mr.sh</code> 即可测试；</p>
+<blockquote>
+<p>  <strong>别忘了打开 <code>RACE=-race</code>！</strong></p>
+</blockquote>
+<p>通过最后的输出可以看到，所有的用例都通过了！</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">*** Starting wc test.</span><br><span class="line">--- wc test: PASS</span><br><span class="line">*** Starting indexer test.</span><br><span class="line">--- indexer test: PASS</span><br><span class="line">*** Starting map parallelism test.</span><br><span class="line">--- map parallelism test: PASS</span><br><span class="line">*** Starting reduce parallelism test.</span><br><span class="line">--- reduce parallelism test: PASS</span><br><span class="line">*** Starting crash test.</span><br><span class="line">--- crash test: PASS</span><br><span class="line">*** PASSED ALL TESTS</span><br></pre></td></tr></table></figure>
+
+<p>同时输出了大量 INFO 级别的日志：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line">2022/10/12 22:21:11 [INFO]master server started: &amp;&#123;&#123;&#123;0 0&#125; 0 0 0 0&#125; Map 8 10 map[Map-0:0xc000078180 Map-1:0xc0000781e0 Map-2:0xc000078240 Map-3:0xc0000782a0 Map-4:0xc000078300 Map-5:0xc000078360 Map-6:0xc0000783c0 Map-7:0xc000078420] 0xc000078120&#125;</span><br><span class="line">2022/10/12 22:21:11 [INFO]current task phase: Map, res task count: 8</span><br><span class="line">2022/10/12 22:21:12 [INFO]Worker 58334 started!</span><br><span class="line"></span><br><span class="line">2022/10/12 22:21:12 [INFO]Worker 58333 started!</span><br><span class="line"></span><br><span class="line">2022/10/12 22:21:12 [INFO]Worker 58335 started!</span><br><span class="line"></span><br><span class="line">2022/10/12 22:21:12 [INFO]Assign task &amp;&#123;Map-0 Map 0 ../pg-being_ernest.txt  0001-01-01 00:00:00 +0000 UTC&#125; to worker 58333</span><br><span class="line">2022/10/12 22:21:12 [INFO]Assign task &amp;&#123;Map-1 Map 1 ../pg-dorian_gray.txt  0001-01-01 00:00:00 +0000 UTC&#125; to worker 58334</span><br><span class="line">2022/10/12 22:21:12 [INFO]Assign task &amp;&#123;Map-2 Map 2 ../pg-frankenstein.txt  0001-01-01 00:00:00 +0000 UTC&#125; to worker 58335</span><br><span class="line">2022/10/12 22:21:12 [INFO]Call AckAndQueryNewTaskResponse success! req: &amp;&#123;0  58334&#125;, resp: &amp;&#123;0xc000114ae0 8 10&#125;</span><br><span class="line">2022/10/12 22:21:12 [INFO]Call AckAndQueryNewTaskResponse success! req: &amp;&#123;0  58333&#125;, resp: &amp;&#123;0xc0001329c0 8 10&#125;</span><br><span class="line">2022/10/12 22:21:12 [INFO]Call AckAndQueryNewTaskResponse success! req: &amp;&#123;0  58335&#125;, resp: &amp;&#123;0xc000076720 8 10&#125;</span><br><span class="line">2022/10/12 22:21:12 [INFO]current task phase: Map, res task count: 5</span><br><span class="line">2022/10/12 22:21:13 [INFO]Worker[58333] writes intermediate files success, task: &amp;&#123;Map-0 Map 0 ../pg-being_ernest.txt 58333 2022-10-12 22:21:22.861303 +0800 CST&#125;</span><br><span class="line">2022/10/12 22:21:13 [INFO]Finished task: &amp;&#123;Map-0 Map 0 ../pg-being_ernest.txt 58333 2022-10-12 22:21:22.861303 +0800 CST&#125; on worker: 58333</span><br><span class="line"></span><br><span class="line">2022/10/12 22:21:13 [INFO]Mark task [&amp;&#123;Map-0 Map 0 ../pg-being_ernest.txt 58333 2022-10-12 22:21:22.861303 +0800 CST m=+11.002276209&#125;] finished on worker 58333</span><br><span class="line">2022/10/12 22:21:13 [INFO]handleFinishedMapTask success: workerId: 58333, taskIdx: 0</span><br><span class="line">2022/10/12 22:21:13 [INFO]Assign task &amp;&#123;Map-3 Map 3 ../pg-grimm.txt  0001-01-01 00:00:00 +0000 UTC&#125; to worker 58333</span><br><span class="line">2022/10/12 22:21:13 [INFO]Call AckAndQueryNewTaskResponse success! req: &amp;&#123;0 Map 58333&#125;, resp: &amp;&#123;0xc000076360 8 10&#125;</span><br><span class="line">2022/10/12 22:21:13 [INFO]Worker[58335] writes intermediate files success, task: &amp;&#123;Map-2 Map 2 ../pg-frankenstein.txt 58335 2022-10-12 22:21:22.861595 +0800 CST&#125;</span><br><span class="line">2022/10/12 22:21:13 [INFO]Finished task: &amp;&#123;Map-2 Map 2 ../pg-frankenstein.txt 58335 2022-10-12 22:21:22.861595 +0800 CST&#125; on worker: 58335</span><br><span class="line"></span><br><span class="line">2022/10/12 22:21:13 [INFO]Mark task [&amp;&#123;Map-2 Map 2 ../pg-frankenstein.txt 58335 2022-10-12 22:21:22.861595 +0800 CST m=+11.002569001&#125;] finished on worker 58335</span><br><span class="line">2022/10/12 22:21:13 [INFO]handleFinishedMapTask success: workerId: 58335, taskIdx: 2</span><br><span class="line">2022/10/12 22:21:13 [INFO]Assign task &amp;&#123;Map-4 Map 4 ../pg-huckleberry_finn.txt  0001-01-01 00:00:00 +0000 UTC&#125; to worker 58335</span><br><span class="line">2022/10/12 22:21:13 [INFO]Call AckAndQueryNewTaskResponse success! req: &amp;&#123;2 Map 58335&#125;, resp: &amp;&#123;0xc0000ba7e0 8 10&#125;</span><br><span class="line">2022/10/12 22:21:13 [INFO]Worker[58334] writes intermediate files success, task: &amp;&#123;Map-1 Map 1 ../pg-dorian_gray.txt 58334 2022-10-12 22:21:22.861488 +0800 CST&#125;</span><br><span class="line">2022/10/12 22:21:13 [INFO]Finished task: &amp;&#123;Map-1 Map 1 ../pg-dorian_gray.txt 58334 2022-10-12 22:21:22.861488 +0800 CST&#125; on worker: 58334</span><br><span class="line"></span><br><span class="line">2022/10/12 22:21:13 [INFO]Mark task [&amp;&#123;Map-1 Map 1 ../pg-dorian_gray.txt 58334 2022-10-12 22:21:22.861488 +0800 CST m=+11.002462043&#125;] finished on worker 58334</span><br><span class="line">2022/10/12 22:21:13 [INFO]handleFinishedMapTask success: workerId: 58334, taskIdx: 1</span><br><span class="line">2022/10/12 22:21:13 [INFO]Assign task &amp;&#123;Map-5 Map 5 ../pg-metamorphosis.txt  0001-01-01 00:00:00 +0000 UTC&#125; to worker 58334</span><br><span class="line">2022/10/12 22:21:13 [INFO]Call AckAndQueryNewTaskResponse success! req: &amp;&#123;1 Map 58334&#125;, resp: &amp;&#123;0xc000098420 8 10&#125;</span><br><span class="line">2022/10/12 22:21:13 [INFO]Worker[58334] writes intermediate files success, task: &amp;&#123;Map-5 Map 5 ../pg-metamorphosis.txt 58334 2022-10-12 22:21:23.568509 +0800 CST&#125;</span><br><span class="line">2022/10/12 22:21:13 [INFO]Finished task: &amp;&#123;Map-5 Map 5 ../pg-metamorphosis.txt 58334 2022-10-12 22:21:23.568509 +0800 CST&#125; on worker: 58334</span><br><span class="line"></span><br><span class="line">......</span><br><span class="line"></span><br><span class="line">2022/10/12 22:22:25 [INFO]Call AckAndQueryNewTaskResponse success! req: &amp;&#123;2 Reduce 58551&#125;, resp: &amp;&#123;0xc000188240 0 0&#125;</span><br><span class="line">2022/10/12 22:22:25 [INFO]Received job finish signal from master, exit</span><br><span class="line">2022/10/12 22:22:25 [INFO]Worker 58551 finished!</span><br><span class="line"></span><br><span class="line">2022/10/12 22:22:26 [INFO]current task phase: Finished, res task count: 0</span><br><span class="line">2022/10/12 22:22:26 [INFO]Worker 58818 started!</span><br><span class="line"></span><br><span class="line">2022/10/12 22:22:26 [INFO]Worker 58817 started!</span><br><span class="line"></span><br><span class="line">2022/10/12 22:22:26 [INFO]Worker 58820 started!</span><br><span class="line"></span><br><span class="line">2022/10/12 22:22:26 [INFO]Call AckAndQueryNewTaskResponse success! req: &amp;&#123;0  58818&#125;, resp: &amp;&#123;0xc00007a720 0 0&#125;</span><br><span class="line">2022/10/12 22:22:26 [INFO]Received job finish signal from master, exit</span><br><span class="line">2022/10/12 22:22:26 [INFO]Worker 58818 finished!</span><br><span class="line"></span><br><span class="line">2022/10/12 22:22:26 [INFO]Call AckAndQueryNewTaskResponse success! req: &amp;&#123;0  58817&#125;, resp: &amp;&#123;0xc00013aae0 0 0&#125;</span><br><span class="line">2022/10/12 22:22:26 [INFO]Received job finish signal from master, exit</span><br><span class="line">2022/10/12 22:22:26 [INFO]Worker 58817 finished!</span><br></pre></td></tr></table></figure>
+
+<p>从日志也可以看出，最终 Master 和 Worker 都成功的退出了！</p>
+<br/>
+
+<h2 id="后记"><a href="#后记" class="headerlink" title="后记"></a><strong>后记</strong></h2><p>上面就是 Lab1 的基本实现了，在开发过程中的一个小技巧就是，<strong>大量打印日志</strong>，便于排查问题；</p>
+<p>同时，在写代码之前，要提前规划好代码，组织好逻辑之后再动手，效率反而高很多！</p>
+<br/>
+
+<h1 id="附录"><a href="#附录" class="headerlink" title="附录"></a><strong>附录</strong></h1><p>源代码根据 MIT 实验的要求，是一个Private的 repo 没有公开，需要源代码的可以联系我，也可以一起交流～</p>
+<p>视频学习地址：</p>
+<ul>
+<li><a href="https://www.bilibili.com/video/BV1R7411t71W/">https://www.bilibili.com/video/BV1R7411t71W/</a></li>
+</ul>
+<br/>
+
+
+  </article>
+
+  <div id="like-container" style="text-align: center">
+    <div class="like-feed">
+      <p>觉得本文不错就点个<span>♥</span>再走吧~</p>
+      <div class="like-img">
+        <div class="like-heart" id="like" rel="like"></div>
+        <div class="like-count" id="like-count"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 文章分享 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/social-share.js/1.0.16/css/share.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/social-share.js/1.0.16/js/social-share.min.js"></script>
+  <div class="social-share" data-mode="prepend" data-disabled="tencent,diandian"></div>
+  <br />
+
+  
+  
+<div class="nexmoe-post-copyright">
+<i class="mdui-list-item-icon nexmoefont icon-info-circle"></i>
+<strong>本文作者：</strong>Jasonkay<br>
+<strong>本文链接：</strong><a href="https://jasonkayzk.github.io/cn/2022/10/08/mit-6-824-lab1-MapReduce%E6%80%BB%E7%BB%93/" title="https:&#x2F;&#x2F;jasonkayzk.github.io&#x2F;cn&#x2F;2022&#x2F;10&#x2F;08&#x2F;mit-6-824-lab1-MapReduce%E6%80%BB%E7%BB%93&#x2F;" target="_blank" rel="noopener">https:&#x2F;&#x2F;jasonkayzk.github.io&#x2F;cn&#x2F;2022&#x2F;10&#x2F;08&#x2F;mit-6-824-lab1-MapReduce%E6%80%BB%E7%BB%93&#x2F;</a><br>
+
+  <strong>版权声明：</strong>本文采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/cn/deed.zh" target="_blank">CC BY-NC-SA 3.0 CN</a> 协议进行许可
+
+</div>
+
+
+  
+
+  <!-- 增加面试点击标题才显示答案等效果! -->
+  <!-- <script type="text/javascript">
+    $(".question").click(function () {
+      var a = $(".answer").eq($(".question").index(this));
+      a.is(".answer_shown") ? a.animate({ 'opacity': '1' }, 800).removeClass("answer_shown") : a.animate({ 'opacity': '0' }, 800).addClass("answer_shown");
+    });
+  </script> -->
+  <!-- <style>
+    .answer_shown {
+      opacity: 0;
+    }
+  </style> -->
+
+  <!-- 加载博客点赞功能 -->
+  <script>
+    function ajax(options) {
+      return new Promise(function (resolve, reject) {
+        $.ajax(options).done(resolve).fail(reject);
+      });
+    }
+
+    var docName = $('meta[property="og:title"]').attr('content');
+    
+    // 跳过localhost
+    if (location.hostname !== 'localhost') {
+      // 初始化
+      ajax({
+        url: "https://service-rvqf6dam-1257829547.gz.apigw.tencentcs.com/blog_like/",
+        type: 'post',
+        contentType: 'application/json; charset=utf-8',
+        data: JSON.stringify({
+          "actionId": "get",
+          "docName": docName
+        })
+      }).then(
+        function fulfillHandler(data) {
+          $('#like-count').text(data.likeNum);
+        },
+        function rejectHandler(jqXHR, textStatus, errorThrown) {
+          $('#like-count').text(0);
+          console.log(jqXHR, textStatus, errorThrown);
+        }
+      ).catch(function errorHandler(error) {
+        $('#like-count').text(0);
+        console.log(error);
+      });
+
+      $(document).ready(function () {
+        $(".like-heart").on("click", function () {
+          var heart = $(this);
+          var likeCount = $("#like-count" + heart.attr("id").split("like")[1]);
+          var intCount = parseInt(likeCount.html());
+          var rel = heart.attr("rel");
+
+          if (rel === "like") {
+            likeCount.html(intCount + 1);
+            heart.addClass("like-heartAnimation").attr("rel", "unlike");
+            ajax({
+              url: "https://service-rvqf6dam-1257829547.gz.apigw.tencentcs.com/blog_like/",
+              type: 'post',
+              contentType: 'application/json; charset=utf-8',
+              data: JSON.stringify({
+                "actionId": "add",
+                "docName": docName
+              })
+            }).catch(function errorHandler(error) {
+              console.log(error);
+            });
+          } else {
+            likeCount.html(intCount - 1);
+            heart.removeClass("like-heartAnimation").attr("rel", "like");
+            heart.css("background-position", "left");
+            ajax({
+              url: "https://service-rvqf6dam-1257829547.gz.apigw.tencentcs.com/blog_like/",
+              type: 'post',
+              contentType: 'application/json; charset=utf-8',
+              data: JSON.stringify({
+                "actionId": "subtract",
+                "docName": docName
+              })
+            }).catch(function errorHandler(error) {
+              console.log(error);
+            });
+          }
+        }).on("mouseleave", function () {
+          $(this).css("background-position", "");
+        });
+      });
+    }
+  </script>
+  <style>
+    #like-container {
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .like-img {
+      width: 200px;
+      height: 100px;
+      display: inline-block;
+    }
+
+    .like-heart {
+      float: left;
+      background: url(/cn/images/web_heart_animation.png);
+      background-position: left;
+      background-repeat: no-repeat;
+      height: 50px;
+      width: 120px;
+      left: -14px;
+      background-size: 2900%;
+    }
+
+    .like-count {
+      float: left;
+      font-family: 'Georgia', Times, Times New Roman, serif;
+      font-size: 35px;
+      color: #999999;
+      text-align: left;
+      height: 50px;
+      width: 50px;
+      line-height: 44px;
+    }
+
+    .like-heart:hover,
+    .like-heart:focus {
+      background-position: right;
+    }
+
+    @-webkit-keyframes heartBlast {
+      0% {
+        background-position: left;
+      }
+
+      100% {
+        background-position: right;
+      }
+    }
+
+    @keyframes heartBlast {
+      0% {
+        background-position: left;
+      }
+
+      100% {
+        background-position: right;
+      }
+    }
+
+    .like-heartAnimation {
+      display: inline-block;
+      -webkit-animation-name: heartBlast;
+      animation-name: heartBlast;
+      -webkit-animation-duration: .8s;
+      animation-duration: .8s;
+      -webkit-animation-iteration-count: 1;
+      animation-iteration-count: 1;
+      -webkit-animation-timing-function: steps(28);
+      animation-timing-function: steps(28);
+      background-position: right;
+    }
+
+    .like-feed {
+      height: 90px;
+      margin-bottom: 20px;
+      text-align: center
+    }
+
+    .like-feed p {
+      font-family: 'microsoft yahei', 'Georgia';
+      font-size: 25px;
+    }
+
+    .like-feed span {
+      font-size: 30px;
+      color: #D33115;
+    }
+  </style>
+
+  <section class="nexmoe-comment">
+    <div class="utterances"></div>
+<style>
+    .v .vwrap {
+      border: 1px dashed #c4bfbf
+    }
+  
+    .v .vwrap .vheader .vinput {
+      border-bottom: 1px dashed #c4bfbf
+    }
+</style>
+<script src="https://utteranc.es/client.js"
+        repo='JasonkayZK/cn'
+        issue-term="title"
+        label="comment✨💬✨"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+
+</section>
+</div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/mdui@0.4.3/dist/js/mdui.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
+ 
+    <script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script>
+
+
+ 
+    <script src="https://cdn.jsdelivr.net/npm/smoothscroll-for-websites@1.4.9/SmoothScroll.min.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.16.2/build/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<script src="/cn/js/app.js?v=1792901139015"></script>
+<script src="https://cdn.jsdelivr.net/npm/lazysizes@5.1.0/lazysizes.min.js"></script>
+
+
+
+
+  
+    <!-- Google Analytics -->
+<script>
+    window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+    ga('create', 'G-1NWK4EEKDF', 'auto');
+    ga('send', 'pageview');
+</script>
+<script async src="https://www.google-analytics.com/analytics.js"></script>
+
+
+
+
+
+
+    <!-- baidu Analytics -->
+<script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?5f5ec71a32c11ff54dff64d0341017b0";
+      var s = document.getElementsByTagName("script")[0]; 
+      s.parentNode.insertBefore(hm, s);
+    })();
+</script>
+
+</body>
+
+<!-- 页面点击小红心 -->
+<!-- 
+<script type="text/javascript">
+  !function (e, t, a) { function n() { c(".heart{width: 10px;height: 10px;position: fixed;background: #f00;transform: rotate(45deg);-webkit-transform: rotate(45deg);-moz-transform: rotate(45deg);}.heart:after,.heart:before{content: '';width: inherit;height: inherit;background: inherit;border-radius: 50%;-webkit-border-radius: 50%;-moz-border-radius: 50%;position: fixed;}.heart:after{top: -5px;}.heart:before{left: -5px;}"), o(), r() } function r() { for (var e = 0; e < d.length; e++)d[e].alpha <= 0 ? (t.body.removeChild(d[e].el), d.splice(e, 1)) : (d[e].y--, d[e].scale += .004, d[e].alpha -= .013, d[e].el.style.cssText = "left:" + d[e].x + "px;top:" + d[e].y + "px;opacity:" + d[e].alpha + ";transform:scale(" + d[e].scale + "," + d[e].scale + ") rotate(45deg);background:" + d[e].color + ";z-index:99999"); requestAnimationFrame(r) } function o() { var t = "function" == typeof e.onclick && e.onclick; e.onclick = function (e) { t && t(), i(e) } } function i(e) { var a = t.createElement("div"); a.className = "heart", d.push({ el: a, x: e.clientX - 5, y: e.clientY - 5, scale: 1, alpha: 1, color: s() }), t.body.appendChild(a) } function c(e) { var a = t.createElement("style"); a.type = "text/css"; try { a.appendChild(t.createTextNode(e)) } catch (t) { a.styleSheet.cssText = e } t.getElementsByTagName("head")[0].appendChild(a) } function s() { return "rgb(" + ~~(255 * Math.random()) + "," + ~~(255 * Math.random()) + "," + ~~(255 * Math.random()) + ")" } var d = []; e.requestAnimationFrame = function () { return e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame || function (e) { setTimeout(e, 1e3 / 60) } }(), n() }(window, document);
+</script>
+ -->
+ 
+<script>
+  // 进度条加载: nprogress
+  NProgress.start()
+  NProgress.done()
+</script>
+
+<script type="text/javascript" defer>
+  $(document).ready(function () {
+    $.goup({
+      trigger: 100,
+      bottomOffset: 50,
+      locationOffset: 50,
+      title: '0%',
+      titleAsText: true
+    });
+    $(".goup-container").css("background", "#64dcf0 none repeat scroll 0% 0%").css("opacity", 0.9);
+    $(".goup-text").css("font-weight", 600).css("opacity", 0.9);
+  });
+
+  $(document).scroll(function () {
+    var d_h = $(document).height();
+    var c_h = $(window).height();
+    var c_t_h = $(window).scrollTop();
+    var schedule = c_t_h / (d_h - c_h - 0.5);
+    var str = Number(schedule * 100).toFixed();
+    str += "%";
+    $(".goup-text").text(str);
+  });
+</script>
+
+<!-- 站内通知 -->
+<script src="/cn/js/notification.js"></script>
+<script>
+  'use strict';
+
+  (function () {
+    $(function () {
+      $('.position').click(function (event) {
+        var el = $(event.target);
+        $('.position').removeClass('selected');
+        el.addClass('selected');
+        position = el.attr('data-position');
+      });
+    });
+  });
+
+  var position = 2;
+  // 关闭百毫秒数
+  var closeTime = 50;
+  var notifyFunc = function () {
+    // Notification.create(
+    //   // Title
+    //   "Tencent内推中📧",
+    //   // Text
+    //   "简历投递处：<BR/><a href='/hiring/'>简历投递</a>",
+    //   // Illustration
+    //   "/cn/images/avatar4.jpg",
+    //   // Effect
+    //   'fadeInRight',
+    //   // Position 1, 2, 3, 4
+    //   position,
+    //   closeTime
+    // );
+    // setTimeout(() => {
+    //   Notification.create(
+    //     "资源下载⚡",
+    //     "传送门：<BR/><a href='/sharing/'>文件分享</a>",
+    //     "/cn/images/avatar4.jpg",
+    //     'fadeInRight',
+    //     position,
+    //     closeTime
+    //   )
+    // }, 350);
+    setTimeout(() => {
+      Notification.create(
+        "RSS订阅📢",
+        "传送门：<BR/><a href='/cn/atom.xml'>RSS订阅</a>",
+        "/cn/images/avatar4.jpg",
+        'fadeInRight',
+        position,
+        closeTime
+      )
+    }, 0);
+    setTimeout(() => {
+        Notification.create(
+        "在线群聊💭",
+        "传送门：<BR/><a href='/cn/chat/'>畅所欲言</a>",
+        "/cn/images/avatar4.jpg",
+        'fadeInRight',
+        position,
+        closeTime
+      )
+    }, 350);
+    setTimeout(() => {
+        Notification.create(
+        // "跑步健身🏃",
+        // "传送门：<BR/><a href='/running/'>跑步健身</a>",
+        "摄影分享📷",
+        "传送门：<BR/><a href='http://159.75.131.252:32352/'>摄影分享</a>",
+        "/cn/images/avatar4.jpg",
+        'fadeInRight',
+        position,
+        closeTime
+      )
+    }, 700);
+  };
+
+  (function once() {
+    if (sessionStorage.getItem('load') == null) {
+      notifyFunc();
+      sessionStorage.setItem('load', false);
+    } else {
+      return;
+    }
+  })();
+</script>
+<script>
+  $(document).on("click", ".dismiss", function (e) {
+    Notification.hide(e.currentTarget.classList[1].split('-')[1]);
+  })
+</script>
+
+</html>

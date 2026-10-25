@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script>window.SITE_ROOT = "/cn/";</script>
+  <script type="text/javascript" src="https://cdn.bootcdn.net/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script type="text/javascript" src="/cn/js/jquery.goup.min.js" defer></script>
+  
+  <title>Java集合六-Stack - 张小凯的博客</title>
+  <meta charset="UTF-8">
+  <meta name="description" content="謙虚は人を進歩させ、ごうまんは人を落後させる。社会の初心者から、よろしくお願いします！">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  
+  
+
+  <link rel="shortcut icon" href="/cn/favicon.ico" type="image/png" />
+  <meta name="description" content="本篇总结了Java中的Stack">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java集合六-Stack">
+<meta property="og:url" content="https://jasonkayzk.github.io/cn/2019/11/27/Java%E9%9B%86%E5%90%88%E5%85%AD-Stack/index.html">
+<meta property="og:site_name" content="张小凯的博客">
+<meta property="og:description" content="本篇总结了Java中的Stack">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://raw.gitmirror.com/JasonkayZK/blog_static/master/images/Stack%E5%92%8CCollection%E7%9A%84%E5%85%B3%E7%B3%BB.jpg">
+<meta property="article:published_time" content="2019-11-27T02:05:10.000Z">
+<meta property="article:modified_time" content="2026-10-25T04:05:16.264Z">
+<meta property="article:author" content="Jasonkay">
+<meta property="article:tag" content="Java基础">
+<meta property="article:tag" content="集合">
+<meta property="article:tag" content="面试总结">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://raw.gitmirror.com/JasonkayZK/blog_static/master/images/Stack%E5%92%8CCollection%E7%9A%84%E5%85%B3%E7%B3%BB.jpg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mdui@0.4.3/dist/css/mdui.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.16.2/styles/atom-one-dark.css">
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+  
+  <link rel="stylesheet" href="//at.alicdn.com/t/font_1038733_0xvrvpg9c0r.css">
+  <link rel="stylesheet" href="/cn/css/style.css?v=1792901139574">
+
+  <!-- 进度条加载: nprogress -->
+  <link href="https://cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <script src="https://cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6617852905105366"
+  crossorigin="anonymous"></script>
+  <!-- Cloudflare Web Analytics -->
+   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "73d46a730654451bac205cdc12bea918"}'></script>
+  <!-- umami Web Analytics -->
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="23fadd4b-d559-4ae0-a4f6-f90680c3d4c0"></script>
+
+  <!-- 本地搜索js -->
+  <script type="text/javascript" src="/cn/js/search.js"></script>
+
+  <!-- 百度站点管理 -->
+  <meta name="baidu-site-verification" content="code-SKIvb4A1Qx" />
+
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-1NWK4EEKDF');
+  </script>
+
+  <!-- 站内通知 -->
+  <link href='https://apps.bdimg.com/libs/bootstrap/3.3.4/css/bootstrap.css' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" type="text/css" href="/cn/css/default.css">
+  <link rel='stylesheet' href='/cn/css/animate.min.css'>
+  <link rel="stylesheet" href="/cn/css/notification.css">
+  <link rel="stylesheet" href="/cn/css/index.css">
+<meta name="generator" content="Hexo 8.1.2"><link rel="alternate" href="/cn/atom.xml" title="张小凯的博客" type="application/atom+xml">
+</head>
+
+<!-- 文章阅读进度条样式 -->
+<style>
+  #content_progress {
+      /* Positioning */
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 99999;
+      width: 100%;
+      height: 3px;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      border: none;
+      background-color: transparent;
+      color: #ffaa73;
+}
+
+#content_progress::-webkit-progress-bar {
+      background-color: transparent;
+}
+
+#content_progress::-webkit-progress-value {
+      background-color: #ffaa73;
+}
+
+#content_progress::-moz-progress-bar {
+      background-color:#ffaa73;
+}
+</style>
+<!-- 文章阅读进度条JS -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      var winHeight = window.innerHeight,
+            docHeight = document.documentElement.scrollHeight,
+            progressBar = document.querySelector('#content_progress');
+      progressBar.max = docHeight - winHeight;
+      progressBar.value = window.scrollY;
+
+      document.addEventListener('scroll', function () {
+            progressBar.max = document.documentElement.scrollHeight - window.innerHeight;
+            progressBar.value = window.scrollY;
+      });
+});
+</script>
+
+<body class="mdui-drawer-body-left">
+  <!-- 文章阅读进度条 -->
+  <progress id="content_progress" value="0"></progress>
+
+  <!-- 音频播放 -->
+  <!-- <link rel="stylesheet" href="/dist/APlayer.min.css">
+  <div id="aplayer"></div>
+  <script type="text/javascript" src="/dist/APlayer.min.js"></script>
+  <script type="text/javascript" src="/dist/music.js"></script> -->
+
+  
+  <div id="nexmoe-background">
+    <div class="nexmoe-bg" style="background-image: url(/cn/images/bg.jpg)"></div>
+    <div class="mdui-appbar mdui-shadow-0">
+      <div class="mdui-toolbar">
+        <a mdui-drawer="{target: '#drawer', swipe: true}" title="menu" class="mdui-btn mdui-btn-icon"><i
+            class="mdui-icon material-icons">menu</i></a>
+        <div class="mdui-toolbar-spacer"></div>
+        <a href="/cn/" title="Jasonkay" class="mdui-btn mdui-btn-icon"><img
+            src="/cn/images/avatar4.jpg"></a>
+      </div>
+    </div>
+  </div>
+  <div id="nexmoe-header">
+    <div class="nexmoe-drawer mdui-drawer" id="drawer">
+    <div class="nexmoe-avatar mdui-ripple">
+        <a href="/cn/" title="Jasonkay">
+            <img src="/cn/images/avatar4.jpg" alt="Jasonkay">
+        </a>
+    </div>
+
+    <!-- 黑白切换css -->
+    <!-- <style>
+        .light-dark-checkbox {
+            margin: 0 auto;
+        }
+
+        /* The switch - the box around the slider */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        /* Hide default HTML checkbox */
+        .switch .theme-switcher {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        /* The slider */
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            transition: 0.4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "🌞";
+            height: 0px;
+            width: 0px;
+            left: -10px;
+            top: 16px;
+            line-height: 0px;
+            transition: 0.4s;
+        }
+
+        .theme-switcher:checked+.slider:before {
+            left: 35px;
+            content: "🌑";
+        }
+
+        .theme-switcher:checked+.slider:before {
+            transform: translateX(45px);
+        }
+
+        /* Rounded sliders */
+        .slider.round {
+            border-radius: 40px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        /* 暗黑样式 */
+        body.night {
+            background-color: #263238;
+            color: #aaa;
+        }
+        body.night img {
+            filter: brightness(30%);
+        }
+        article.night {
+            background-color: black;
+            color: white;
+        }
+    </style> -->
+
+    <!-- 黑白开关 -->
+    <!-- <div class="nexmoe-list-item mdui-list-item">
+        <div class="light-dark-checkbox">
+            <div>
+                黑白模式切换(Beta)
+            </div>
+            <label class="switch">
+                <input id="light-dark-input" type="checkbox" onclick="switchTheme();" class="theme-switcher">
+                <span class="slider round"></span>
+            </label>
+        </div>
+    </div> -->
+
+    <!-- 黑白切换js -->
+    <!-- <script>
+        // get hours of the day in 24Hr format (0-23)
+        var hr = (new Date()).getHours();
+
+        $(document).ready(function () {
+            var theme = sessionStorage.getItem("theme");
+            if (theme == "dark") {
+                document.body.classList.add('night');
+                console.log('夜间模式开启');
+            } else if (theme == "light") {
+                document.body.classList.remove('night');
+                console.log('夜间模式关闭');
+            } else {
+                setDefaultTheme(hr);
+            }
+        });
+
+        function switchTheme() {
+            if (sessionStorage.getItem("theme") == "dark") {
+                sessionStorage.setItem("theme", "light");
+                document.body.classList.remove('night');
+                console.log('夜间模式关闭');
+            } else if (sessionStorage.getItem("theme") == "light") {
+                sessionStorage.setItem("theme", "dark");
+                document.body.classList.add('night');
+                console.log('夜间模式开启');
+            } else {
+                setDefaultTheme(hr);
+            }
+        };
+
+        function setDefaultTheme(curHr) {
+            // 6:00-18:00 light
+            if (curHr >= 6 && curHr <= 18) {
+                document.body.classList.remove('night');
+                console.log('夜间模式关闭');
+                sessionStorage.setItem("theme", "light");
+                $("#light-dark-input").attr("checked", false);
+            } else {
+                // 0:00-6:00 & 18:00-00:00 night
+                sessionStorage.setItem("theme", "dark");
+                document.body.classList.add('night');
+                console.log('夜间模式开启');
+                $("#light-dark-input").attr("checked", true);
+            }
+        }
+    </script> -->
+
+    <div class="nexmoe-count">
+        <div><span>文章</span>524</div>
+        <div><span>标签</span>277</div>
+        <div><span>分类</span>67</div>
+    </div>
+    <ul class="nexmoe-list mdui-list" mdui-collapse="{accordion: true}">
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/"
+            title="回到首页">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-home"></i>
+            <div class="mdui-list-item-content">
+                回到首页
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="https://jasonkayzk.github.io/jp/"
+            title="日语分站">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-calendar-fill"></i>
+            <div class="mdui-list-item-content">
+                日语分站
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/about/"
+            title="关于博客">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-eye-fill"></i>
+            <div class="mdui-list-item-content">
+                关于博客
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/archive"
+            title="文章归档">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-container"></i>
+            <div class="mdui-list-item-content">
+                文章归档
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/anki/"
+            title="Anki笔记">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-tag-fill"></i>
+            <div class="mdui-list-item-content">
+                Anki笔记
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/study/"
+            title="学习进度">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-telegram"></i>
+            <div class="mdui-list-item-content">
+                学习进度
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/running/"
+            title="跑步健身">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-dribbble"></i>
+            <div class="mdui-list-item-content">
+                跑步健身
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/interview/"
+            title="面试相关">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-container"></i>
+            <div class="mdui-list-item-content">
+                面试相关
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/algorithm/"
+            title="算法总结">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-areachart"></i>
+            <div class="mdui-list-item-content">
+                算法总结
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/installing/"
+            title="软件安装">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-unorderedlist"></i>
+            <div class="mdui-list-item-content">
+                软件安装
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/board/"
+            title="创意白板">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-tag-fill"></i>
+            <div class="mdui-list-item-content">
+                创意白板
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="http://159.75.131.252:32352/"
+            title="摄影分享">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-telegram"></i>
+            <div class="mdui-list-item-content">
+                摄影分享
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/chat/"
+            title="畅所欲言">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-ellipsis"></i>
+            <div class="mdui-list-item-content">
+                畅所欲言
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/realtime/"
+            title="实时数据统计">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-time-circle-fill"></i>
+            <div class="mdui-list-item-content">
+                实时数据统计
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/py/"
+            title="友情链接">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-container"></i>
+            <div class="mdui-list-item-content">
+                友情链接
+            </div>
+        </a>
+        
+    </ul>
+    <aside id="nexmoe-sidebar">
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">社交按钮</h3>
+    <div class="nexmoe-widget nexmoe-social">
+        <a class="mdui-ripple" href="https://space.bilibili.com/23364338" target="_blank" mdui-tooltip="{content: '哔哩哔哩'}" style="color: rgb(231, 106, 141);background-color: rgba(231, 106, 141, .15);">
+            <i class="nexmoefont icon-bilibili"></i>
+        </a><a class="mdui-ripple" href="https://github.com/jasonkayzk/" target="_blank" mdui-tooltip="{content: 'GitHub'}" style="color: rgb(25, 23, 23);background-color: rgba(25, 23, 23, .15);">
+            <i class="nexmoefont icon-github"></i>
+        </a><a class="mdui-ripple" href="https://steamcommunity.com/id/jasonkayzk/" target="_blank" mdui-tooltip="{content: 'Steam'}" style="color: rgb(29, 161, 242);background-color: rgba(29, 161, 242, .1);">
+            <i class="nexmoefont icon-steam"></i>
+        </a><a class="mdui-ripple" href="https://twitter.com/Jasonkay_ZK/" target="_blank" mdui-tooltip="{content: 'Twitter'}" style="color: rgb(29, 161, 242);background-color: rgba(29, 161, 242, .1);">
+            <i class="nexmoefont icon-twitter"></i>
+        </a><a class="mdui-ripple" href="mailto:jasonkayzk@gmail.com" target="_blank" mdui-tooltip="{content: 'Mail'}" style="color: rgb(29, 161, 242);background-color: rgba(29, 161, 242, .1);">
+            <i class="nexmoefont icon-mail-fill"></i>
+        </a>
+    </div>
+</div>
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">站内搜索</h3>
+    <div class="nexmoe-widget nexmoe-search">
+        <form class="site-search-form">
+            <input type="text" id="local-search-input" class="st-search-input" />
+        </form>
+        <div id="local-search-result" class="local-search-result-cls">
+        </div>
+    </div>
+</div>
+
+<!-- 执行本地搜索脚本 -->
+<script type="text/javascript">
+    var path = "/cn/search.xml";
+    searchFunc(path, 'local-search-input', 'local-search-result');
+</script>
+
+<style type="text/css">
+/* 搜索条 */
+.site-search-form {
+    text-align: center;
+}
+#local-search-input {
+    width: 100%;
+}
+
+/* 搜索结果关闭 */
+#local-search-close {
+    font-size: 22.5px;
+    cursor: pointer;
+    color: #ff4e6a;
+}
+
+.search-result-list > li {
+    line-height: 0.75;
+    margin-top: -5px;
+}
+
+</style>
+  
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">标签云</h3>
+    <div id="randomtagcloud" class="nexmoe-widget tagcloud">
+      <a href="/cn/tags/2048/" style="font-size: 10px;">2048</a> <a href="/cn/tags/ACM/" style="font-size: 10px;">ACM</a> <a href="/cn/tags/AI/" style="font-size: 10px;">AI</a> <a href="/cn/tags/AUFS/" style="font-size: 10px;">AUFS</a> <a href="/cn/tags/Android/" style="font-size: 10.91px;">Android</a> <a href="/cn/tags/AppStore/" style="font-size: 10px;">AppStore</a> <a href="/cn/tags/AppleScript/" style="font-size: 10px;">AppleScript</a> <a href="/cn/tags/Aria2/" style="font-size: 10.91px;">Aria2</a> <a href="/cn/tags/Async/" style="font-size: 10px;">Async</a> <a href="/cn/tags/BFS/" style="font-size: 10.45px;">BFS</a> <a href="/cn/tags/Bash/" style="font-size: 10.45px;">Bash</a> <a href="/cn/tags/BitTorrent/" style="font-size: 10px;">BitTorrent</a> <a href="/cn/tags/BloomFilter/" style="font-size: 10px;">BloomFilter</a> <a href="/cn/tags/Bytebase/" style="font-size: 10px;">Bytebase</a> <a href="/cn/tags/C/" style="font-size: 15.91px;">C++</a> <a href="/cn/tags/CAP/" style="font-size: 10px;">CAP</a> <a href="/cn/tags/CDN/" style="font-size: 10.45px;">CDN</a> <a href="/cn/tags/CGLib%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/" style="font-size: 10px;">CGLib动态代理</a> <a href="/cn/tags/CUDA/" style="font-size: 10.45px;">CUDA</a> <a href="/cn/tags/Cache/" style="font-size: 10px;">Cache</a> <a href="/cn/tags/Caffeine/" style="font-size: 10px;">Caffeine</a> <a href="/cn/tags/Cargo/" style="font-size: 11.82px;">Cargo</a> <a href="/cn/tags/CentOS/" style="font-size: 12.27px;">CentOS</a> <a href="/cn/tags/Cgroups/" style="font-size: 10px;">Cgroups</a> <a href="/cn/tags/Chrome%E6%89%A9%E5%B1%95/" style="font-size: 10px;">Chrome扩展</a> <a href="/cn/tags/Cli/" style="font-size: 10.45px;">Cli</a> <a href="/cn/tags/ClickHouse/" style="font-size: 10px;">ClickHouse</a> <a href="/cn/tags/Cling/" style="font-size: 10px;">Cling</a> <a href="/cn/tags/Clion/" style="font-size: 10px;">Clion</a> <a href="/cn/tags/Colima/" style="font-size: 10px;">Colima</a> <a href="/cn/tags/Container/" style="font-size: 10px;">Container</a> <a href="/cn/tags/DFS/" style="font-size: 10.45px;">DFS</a> <a href="/cn/tags/DLL/" style="font-size: 10.45px;">DLL</a> <a href="/cn/tags/Debian/" style="font-size: 10px;">Debian</a> <a href="/cn/tags/Docker/" style="font-size: 18.64px;">Docker</a> <a href="/cn/tags/Docker-Compose/" style="font-size: 10.45px;">Docker-Compose</a> <a href="/cn/tags/DockerHub/" style="font-size: 10px;">DockerHub</a> <a href="/cn/tags/Dolt/" style="font-size: 10px;">Dolt</a> <a href="/cn/tags/Dubbo/" style="font-size: 10.91px;">Dubbo</a> <a href="/cn/tags/Easegress/" style="font-size: 10px;">Easegress</a> <a href="/cn/tags/ElasticSearch/" style="font-size: 14.09px;">ElasticSearch</a> <a href="/cn/tags/Electron/" style="font-size: 10.45px;">Electron</a> <a href="/cn/tags/English/" style="font-size: 10px;">English</a> <a href="/cn/tags/Excel/" style="font-size: 10px;">Excel</a> <a href="/cn/tags/Express/" style="font-size: 10px;">Express</a> <a href="/cn/tags/FFmpeg/" style="font-size: 10px;">FFmpeg</a> <a href="/cn/tags/FTP/" style="font-size: 10.45px;">FTP</a> <a href="/cn/tags/FaaS/" style="font-size: 10px;">FaaS</a> <a href="/cn/tags/Future/" style="font-size: 10px;">Future</a> <a href="/cn/tags/GC/" style="font-size: 10px;">GC</a> <a href="/cn/tags/GPU/" style="font-size: 10.45px;">GPU</a> <a href="/cn/tags/GRPC/" style="font-size: 10px;">GRPC</a> <a href="/cn/tags/Gin/" style="font-size: 10px;">Gin</a> <a href="/cn/tags/Git/" style="font-size: 13.64px;">Git</a> <a href="/cn/tags/Gitee/" style="font-size: 10px;">Gitee</a> <a href="/cn/tags/Github/" style="font-size: 14.55px;">Github</a> <a href="/cn/tags/Github-Actions/" style="font-size: 10px;">Github-Actions</a> <a href="/cn/tags/Golang/" style="font-size: 18.18px;">Golang</a> <a href="/cn/tags/Gomod/" style="font-size: 10px;">Gomod</a> <a href="/cn/tags/Goroutine/" style="font-size: 10.91px;">Goroutine</a> <a href="/cn/tags/GraalVM/" style="font-size: 10px;">GraalVM</a> <a href="/cn/tags/Gradle/" style="font-size: 10px;">Gradle</a> <a href="/cn/tags/GraphQL/" style="font-size: 10px;">GraphQL</a> <a href="/cn/tags/HAProxy/" style="font-size: 10px;">HAProxy</a> <a href="/cn/tags/Hadoop/" style="font-size: 10px;">Hadoop</a> <a href="/cn/tags/IDEA%E9%85%8D%E7%BD%AE/" style="font-size: 10px;">IDEA配置</a> <a href="/cn/tags/ID%E7%94%9F%E6%88%90%E5%99%A8/" style="font-size: 10.45px;">ID生成器</a> <a href="/cn/tags/IO%E6%A8%A1%E5%9E%8B/" style="font-size: 10px;">IO模型</a> <a href="/cn/tags/Ingress/" style="font-size: 10.45px;">Ingress</a> <a href="/cn/tags/JDK%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/" style="font-size: 10.45px;">JDK动态代理</a> <a href="/cn/tags/JVM/" style="font-size: 10px;">JVM</a> <a href="/cn/tags/Java/" style="font-size: 12.27px;">Java</a> <a href="/cn/tags/JavaWeb/" style="font-size: 10px;">JavaWeb</a> <a href="/cn/tags/Java%E5%9F%BA%E7%A1%80/" style="font-size: 16.82px;">Java基础</a> <a href="/cn/tags/Java%E6%B3%A8%E8%A7%A3/" style="font-size: 10px;">Java注解</a> <a href="/cn/tags/Java%E6%BA%90%E7%A0%81/" style="font-size: 12.27px;">Java源码</a> <a href="/cn/tags/Java%E9%9D%A2%E8%AF%95/" style="font-size: 11.36px;">Java面试</a> <a href="/cn/tags/JuiceFS/" style="font-size: 10px;">JuiceFS</a> <a href="/cn/tags/JupyterLab/" style="font-size: 10px;">JupyterLab</a> <a href="/cn/tags/Kafka/" style="font-size: 10.45px;">Kafka</a> <a href="/cn/tags/Kubernetes/" style="font-size: 15.45px;">Kubernetes</a> <a href="/cn/tags/LVS/" style="font-size: 10.91px;">LVS</a> <a href="/cn/tags/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F/" style="font-size: 10.91px;">Lambda表达式</a> <a href="/cn/tags/LevelDB/" style="font-size: 10px;">LevelDB</a> <a href="/cn/tags/Library/" style="font-size: 10.45px;">Library</a> <a href="/cn/tags/Life/" style="font-size: 10px;">Life</a> <a href="/cn/tags/Linux/" style="font-size: 16.36px;">Linux</a> <a href="/cn/tags/LruCache/" style="font-size: 10px;">LruCache</a> <a href="/cn/tags/MacOS/" style="font-size: 10.45px;">MacOS</a> <a href="/cn/tags/Maven/" style="font-size: 12.27px;">Maven</a> <a href="/cn/tags/MongoDB/" style="font-size: 11.82px;">MongoDB</a> <a href="/cn/tags/MySQL/" style="font-size: 13.64px;">MySQL</a> <a href="/cn/tags/Mybatis/" style="font-size: 10.91px;">Mybatis</a> <a href="/cn/tags/NFS/" style="font-size: 10px;">NFS</a> <a href="/cn/tags/NIO/" style="font-size: 10.91px;">NIO</a> <a href="/cn/tags/NPM/" style="font-size: 10px;">NPM</a> <a href="/cn/tags/Namespace/" style="font-size: 10px;">Namespace</a> <a href="/cn/tags/Netty/" style="font-size: 10px;">Netty</a> <a href="/cn/tags/Newman/" style="font-size: 10px;">Newman</a> <a href="/cn/tags/Nginx/" style="font-size: 12.27px;">Nginx</a> <a href="/cn/tags/Node-js/" style="font-size: 11.36px;">Node.js</a> <a href="/cn/tags/Okular/" style="font-size: 10px;">Okular</a> <a href="/cn/tags/P2P/" style="font-size: 10px;">P2P</a> <a href="/cn/tags/POML/" style="font-size: 10px;">POML</a> <a href="/cn/tags/Panic/" style="font-size: 10px;">Panic</a> <a href="/cn/tags/PipelineDB/" style="font-size: 10px;">PipelineDB</a> <a href="/cn/tags/PostgreSQL/" style="font-size: 10.45px;">PostgreSQL</a> <a href="/cn/tags/Postman/" style="font-size: 10.45px;">Postman</a> <a href="/cn/tags/Promise/" style="font-size: 10px;">Promise</a> <a href="/cn/tags/Protobuf/" style="font-size: 10.91px;">Protobuf</a> <a href="/cn/tags/Python/" style="font-size: 11.36px;">Python</a> <a href="/cn/tags/RAII/" style="font-size: 10px;">RAII</a> <a href="/cn/tags/RPC/" style="font-size: 10px;">RPC</a> <a href="/cn/tags/RSS/" style="font-size: 10.91px;">RSS</a> <a href="/cn/tags/React/" style="font-size: 10px;">React</a> <a href="/cn/tags/Redash/" style="font-size: 10px;">Redash</a> <a href="/cn/tags/Redis/" style="font-size: 14.55px;">Redis</a> <a href="/cn/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/cn/tags/Rust/" style="font-size: 18.64px;">Rust</a> <a href="/cn/tags/SPA/" style="font-size: 10px;">SPA</a> <a href="/cn/tags/SQLite/" style="font-size: 10px;">SQLite</a> <a href="/cn/tags/SSE/" style="font-size: 10px;">SSE</a> <a href="/cn/tags/SSH/" style="font-size: 10.45px;">SSH</a> <a href="/cn/tags/Serverless/" style="font-size: 10px;">Serverless</a> <a href="/cn/tags/Shadowsocks/" style="font-size: 10.91px;">Shadowsocks</a> <a href="/cn/tags/Skiplist/" style="font-size: 10px;">Skiplist</a> <a href="/cn/tags/Slice/" style="font-size: 10px;">Slice</a> <a href="/cn/tags/Socket/" style="font-size: 10px;">Socket</a> <a href="/cn/tags/Spring/" style="font-size: 11.82px;">Spring</a> <a href="/cn/tags/Spring-Boot/" style="font-size: 10px;">Spring Boot</a> <a href="/cn/tags/Spring%E6%BA%90%E7%A0%81/" style="font-size: 10px;">Spring源码</a> <a href="/cn/tags/String/" style="font-size: 10px;">String</a> <a href="/cn/tags/Swagger/" style="font-size: 10px;">Swagger</a> <a href="/cn/tags/TOML/" style="font-size: 10px;">TOML</a> <a href="/cn/tags/Telegraf/" style="font-size: 10px;">Telegraf</a> <a href="/cn/tags/Telegram/" style="font-size: 10px;">Telegram</a> <a href="/cn/tags/Tomcat/" style="font-size: 10.45px;">Tomcat</a> <a href="/cn/tags/TypeScript/" style="font-size: 10px;">TypeScript</a> <a href="/cn/tags/Typora/" style="font-size: 10px;">Typora</a> <a href="/cn/tags/UUID/" style="font-size: 10px;">UUID</a> <a href="/cn/tags/UnionFS/" style="font-size: 10px;">UnionFS</a> <a href="/cn/tags/VMWare/" style="font-size: 13.18px;">VMWare</a> <a href="/cn/tags/VPN/" style="font-size: 10px;">VPN</a> <a href="/cn/tags/WebAssembly/" style="font-size: 10.45px;">WebAssembly</a> <a href="/cn/tags/Websocket/" style="font-size: 10px;">Websocket</a> <a href="/cn/tags/XML/" style="font-size: 10.91px;">XML</a> <a href="/cn/tags/YAML/" style="font-size: 10px;">YAML</a> <a href="/cn/tags/Zookeeper/" style="font-size: 10.91px;">Zookeeper</a> <a href="/cn/tags/apt/" style="font-size: 10px;">apt</a> <a href="/cn/tags/autok3s/" style="font-size: 10px;">autok3s</a> <a href="/cn/tags/cURL/" style="font-size: 10px;">cURL</a> <a href="/cn/tags/chroot/" style="font-size: 10px;">chroot</a> <a href="/cn/tags/cmder/" style="font-size: 10px;">cmder</a> <a href="/cn/tags/grpc/" style="font-size: 10px;">grpc</a> <a href="/cn/tags/hash%E5%86%B2%E7%AA%81/" style="font-size: 10px;">hash冲突</a> <a href="/cn/tags/inoreader/" style="font-size: 10px;">inoreader</a> <a href="/cn/tags/k3s/" style="font-size: 10.45px;">k3s</a> <a href="/cn/tags/kafka/" style="font-size: 10px;">kafka</a> <a href="/cn/tags/keepalived/" style="font-size: 10px;">keepalived</a> <a href="/cn/tags/libp2p/" style="font-size: 10px;">libp2p</a> <a href="/cn/tags/minikube/" style="font-size: 10.45px;">minikube</a> <a href="/cn/tags/ntfy/" style="font-size: 10px;">ntfy</a> <a href="/cn/tags/picocli/" style="font-size: 10px;">picocli</a> <a href="/cn/tags/telnet/" style="font-size: 10px;">telnet</a> <a href="/cn/tags/uv/" style="font-size: 10px;">uv</a> <a href="/cn/tags/vcpkg/" style="font-size: 10px;">vcpkg</a> <a href="/cn/tags/xorm/" style="font-size: 10px;">xorm</a> <a href="/cn/tags/%E4%BA%8C%E5%88%86%E6%B3%95/" style="font-size: 10px;">二分法</a> <a href="/cn/tags/%E4%BA%8C%E5%8F%89%E6%A0%91/" style="font-size: 15.45px;">二叉树</a> <a href="/cn/tags/%E4%BA%8C%E7%BB%B4%E7%A0%81/" style="font-size: 10px;">二维码</a> <a href="/cn/tags/%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/" style="font-size: 10px;">交叉编译</a> <a href="/cn/tags/%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD/" style="font-size: 10.91px;">人工智能</a> <a href="/cn/tags/%E4%BA%BA%E7%94%9F%E6%97%A5%E8%AE%B0/" style="font-size: 17.73px;">人生日记</a> <a href="/cn/tags/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">代理模式</a> <a href="/cn/tags/%E4%BD%8D%E8%BF%90%E7%AE%97/" style="font-size: 10.45px;">位运算</a> <a href="/cn/tags/%E4%BF%A1%E5%8F%B7/" style="font-size: 10px;">信号</a> <a href="/cn/tags/%E4%BF%A1%E6%81%AF%E8%81%9A%E5%90%88/" style="font-size: 10px;">信息聚合</a> <a href="/cn/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" style="font-size: 10.45px;">内存管理</a> <a href="/cn/tags/%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/" style="font-size: 10px;">内网穿透</a> <a href="/cn/tags/%E5%87%BD%E6%95%B0%E5%BC%8F%E6%8E%A5%E5%8F%A3/" style="font-size: 10px;">函数式接口</a> <a href="/cn/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 15.91px;">分布式</a> <a href="/cn/tags/%E5%8A%9E%E5%85%AC/" style="font-size: 10px;">办公</a> <a href="/cn/tags/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/" style="font-size: 11.36px;">动态规划</a> <a href="/cn/tags/%E5%8D%8F%E7%A8%8B%E6%B1%A0/" style="font-size: 10px;">协程池</a> <a href="/cn/tags/%E5%8D%9A%E5%AE%A2%E7%AE%A1%E7%90%86/" style="font-size: 13.18px;">博客管理</a> <a href="/cn/tags/%E5%8D%9A%E5%AE%A2%E7%BE%8E%E5%8C%96/" style="font-size: 11.82px;">博客美化</a> <a href="/cn/tags/%E5%8F%8C%E6%8C%87%E9%92%88/" style="font-size: 10.45px;">双指针</a> <a href="/cn/tags/%E5%8F%8D%E5%B0%84/" style="font-size: 12.27px;">反射</a> <a href="/cn/tags/%E5%8F%A3%E6%89%8D/" style="font-size: 10.45px;">口才</a> <a href="/cn/tags/%E5%93%88%E5%B8%8C%E8%A1%A8/" style="font-size: 10.45px;">哈希表</a> <a href="/cn/tags/%E5%9B%9E%E6%BA%AF/" style="font-size: 10.45px;">回溯</a> <a href="/cn/tags/%E5%9B%9E%E6%BA%AF%E6%B3%95/" style="font-size: 10px;">回溯法</a> <a href="/cn/tags/%E5%A0%86/" style="font-size: 10.45px;">堆</a> <a href="/cn/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8B%E8%BD%BD/" style="font-size: 10.45px;">多线程下载</a> <a href="/cn/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE/" style="font-size: 10px;">大数据</a> <a href="/cn/tags/%E5%AD%97%E7%AC%A6%E4%B8%B2/" style="font-size: 13.18px;">字符串</a> <a href="/cn/tags/%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%A4%84%E7%90%86/" style="font-size: 10px;">字符串处理</a> <a href="/cn/tags/%E5%AD%A6%E4%B9%A0%E6%A1%88%E4%BE%8B/" style="font-size: 10.45px;">学习案例</a> <a href="/cn/tags/%E5%AE%B9%E5%99%A8/" style="font-size: 10px;">容器</a> <a href="/cn/tags/%E5%B7%A5%E5%85%B7%E5%88%86%E4%BA%AB/" style="font-size: 19.09px;">工具分享</a> <a href="/cn/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" style="font-size: 15.45px;">并发编程</a> <a href="/cn/tags/%E5%B9%B6%E8%A1%8C%E8%AE%A1%E7%AE%97/" style="font-size: 10.45px;">并行计算</a> <a href="/cn/tags/%E5%BA%8F%E5%88%97%E5%8C%96/" style="font-size: 10px;">序列化</a> <a href="/cn/tags/%E5%BB%BA%E7%AD%91/" style="font-size: 10px;">建筑</a> <a href="/cn/tags/%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/" style="font-size: 10.45px;">开发规范</a> <a href="/cn/tags/%E5%BC%80%E6%BA%90%E5%8D%8F%E8%AE%AE/" style="font-size: 10px;">开源协议</a> <a href="/cn/tags/%E6%80%A7%E8%83%BD%E6%8C%87%E6%A0%87/" style="font-size: 10px;">性能指标</a> <a href="/cn/tags/%E6%8A%80%E6%9C%AF%E6%9D%82%E8%B0%88/" style="font-size: 20px;">技术杂谈</a> <a href="/cn/tags/%E6%8E%92%E5%BA%8F/" style="font-size: 11.82px;">排序</a> <a href="/cn/tags/%E6%8E%A8%E9%80%81/" style="font-size: 10px;">推送</a> <a href="/cn/tags/%E6%90%9C%E7%B4%A2/" style="font-size: 10px;">搜索</a> <a href="/cn/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" style="font-size: 10.91px;">操作系统</a> <a href="/cn/tags/%E6%95%99%E5%B8%88/" style="font-size: 10.45px;">教师</a> <a href="/cn/tags/%E6%95%99%E6%A1%88/" style="font-size: 10.45px;">教案</a> <a href="/cn/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 12.73px;">数学</a> <a href="/cn/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/" style="font-size: 15px;">数据库</a> <a href="/cn/tags/%E6%95%B0%E7%BB%84/" style="font-size: 13.64px;">数组</a> <a href="/cn/tags/%E6%96%87%E5%AD%97%E9%9A%90%E8%97%8F/" style="font-size: 10px;">文字隐藏</a> <a href="/cn/tags/%E6%96%AD%E7%82%B9%E7%BB%AD%E4%BC%A0/" style="font-size: 10px;">断点续传</a> <a href="/cn/tags/%E6%96%B0%E6%B5%AA%E5%BE%AE%E5%8D%9A/" style="font-size: 10px;">新浪微博</a> <a href="/cn/tags/%E6%97%A5%E5%BF%97/" style="font-size: 10px;">日志</a> <a href="/cn/tags/%E6%97%A5%E6%9C%AC%E8%AA%9E/" style="font-size: 14.55px;">日本語</a> <a href="/cn/tags/%E6%97%A5%E8%A8%98/" style="font-size: 10.45px;">日記</a> <a href="/cn/tags/%E6%9C%8D%E5%8A%A1%E8%87%AA%E5%BB%BA/" style="font-size: 10.91px;">服务自建</a> <a href="/cn/tags/%E6%9F%A5%E6%89%BE/" style="font-size: 10.91px;">查找</a> <a href="/cn/tags/%E6%A0%88/" style="font-size: 10.91px;">栈</a> <a href="/cn/tags/%E6%AD%8C%E8%A9%9E/" style="font-size: 10px;">歌詞</a> <a href="/cn/tags/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/" style="font-size: 10.91px;">正则表达式</a> <a href="/cn/tags/%E6%B1%87%E7%BC%96%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">汇编语言</a> <a href="/cn/tags/%E6%B5%8B%E8%AF%95/" style="font-size: 10px;">测试</a> <a href="/cn/tags/%E6%BB%91%E7%AA%97/" style="font-size: 10px;">滑窗</a> <a href="/cn/tags/%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6/" style="font-size: 10px;">版本控制</a> <a href="/cn/tags/%E7%94%9F%E6%B4%BB%E6%80%BB%E7%BB%93/" style="font-size: 10px;">生活总结</a> <a href="/cn/tags/%E7%A6%8F%E5%88%A9%E5%88%86%E4%BA%AB/" style="font-size: 10px;">福利分享</a> <a href="/cn/tags/%E7%AE%97%E6%B3%95/" style="font-size: 12.73px;">算法</a> <a href="/cn/tags/%E7%AE%97%E6%B3%95%E9%A2%98%E7%9B%AE/" style="font-size: 19.55px;">算法题目</a> <a href="/cn/tags/%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/" style="font-size: 10.45px;">类加载器</a> <a href="/cn/tags/%E7%B4%A0%E6%95%B0/" style="font-size: 10px;">素数</a> <a href="/cn/tags/%E7%BA%BF%E6%80%A7%E6%8E%A2%E6%B5%8B%E6%B3%95/" style="font-size: 10px;">线性探测法</a> <a href="/cn/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/" style="font-size: 10.91px;">线程池</a> <a href="/cn/tags/%E7%BC%96%E8%AF%91%E4%BC%98%E5%8C%96/" style="font-size: 10px;">编译优化</a> <a href="/cn/tags/%E7%BC%96%E8%AF%91%E5%99%A8/" style="font-size: 10px;">编译器</a> <a href="/cn/tags/%E7%BD%91%E7%9B%98/" style="font-size: 10px;">网盘</a> <a href="/cn/tags/%E7%BD%91%E7%BB%9C%E7%BA%BF%E8%B7%AF/" style="font-size: 10px;">网络线路</a> <a href="/cn/tags/%E7%BF%BB%E8%A8%B3/" style="font-size: 10.45px;">翻訳</a> <a href="/cn/tags/%E8%87%AA%E5%90%AF%E5%8A%A8/" style="font-size: 10px;">自启动</a> <a href="/cn/tags/%E8%92%99%E7%89%B9%E5%8D%A1%E7%BD%97%E6%96%B9%E6%B3%95/" style="font-size: 10px;">蒙特卡罗方法</a> <a href="/cn/tags/%E8%99%9A%E6%8B%9F%E6%9C%BA/" style="font-size: 10.45px;">虚拟机</a> <a href="/cn/tags/%E8%A1%97%E6%99%AF/" style="font-size: 10px;">街景</a> <a href="/cn/tags/%E8%A3%85%E9%A5%B0%E5%99%A8%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">装饰器模式</a> <a href="/cn/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" style="font-size: 10px;">计算机网络</a> <a href="/cn/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">设计模式</a> <a href="/cn/tags/%E8%AF%BE%E7%A8%8B/" style="font-size: 10.45px;">课程</a> <a href="/cn/tags/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/" style="font-size: 12.27px;">负载均衡</a> <a href="/cn/tags/%E8%B4%AA%E5%BF%83/" style="font-size: 10px;">贪心</a> <a href="/cn/tags/%E8%B7%B3%E8%B7%B3%E8%9B%99%E6%97%A5%E8%AF%AD%E8%AF%BB%E5%BA%93/" style="font-size: 10.45px;">跳跳蛙日语读库</a> <a href="/cn/tags/%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/" style="font-size: 17.27px;">软件安装与配置</a> <a href="/cn/tags/%E8%BD%AF%E4%BB%B6%E6%8E%A8%E8%8D%90/" style="font-size: 15px;">软件推荐</a> <a href="/cn/tags/%E8%BD%AF%E4%BB%B6%E6%B5%8B%E8%AF%95/" style="font-size: 10.45px;">软件测试</a> <a href="/cn/tags/%E8%BD%AF%E8%80%83/" style="font-size: 10px;">软考</a> <a href="/cn/tags/%E8%BF%9B%E5%BA%A6%E6%9D%A1/" style="font-size: 10.45px;">进度条</a> <a href="/cn/tags/%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1/" style="font-size: 10px;">进程通信</a> <a href="/cn/tags/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/" style="font-size: 10px;">逆向工程</a> <a href="/cn/tags/%E9%80%92%E5%BD%92/" style="font-size: 10.45px;">递归</a> <a href="/cn/tags/%E9%87%8D%E5%AE%9A%E5%90%91/" style="font-size: 10px;">重定向</a> <a href="/cn/tags/%E9%87%8D%E8%A3%85%E7%B3%BB%E7%BB%9F/" style="font-size: 10px;">重装系统</a> <a href="/cn/tags/%E9%93%BE%E8%A1%A8/" style="font-size: 13.64px;">链表</a> <a href="/cn/tags/%E9%98%9F%E5%88%97/" style="font-size: 10px;">队列</a> <a href="/cn/tags/%E9%9A%8F%E6%9C%BA%E5%9B%BE%E7%89%87/" style="font-size: 10px;">随机图片</a> <a href="/cn/tags/%E9%9B%86%E5%90%88/" style="font-size: 14.09px;">集合</a> <a href="/cn/tags/%E9%9B%B6%E5%AE%BD%E5%AD%97%E7%AC%A6/" style="font-size: 10px;">零宽字符</a> <a href="/cn/tags/%E9%9D%99%E6%80%81%E4%BB%A3%E7%90%86/" style="font-size: 10px;">静态代理</a> <a href="/cn/tags/%E9%9D%A2%E8%AF%95%E6%80%BB%E7%BB%93/" style="font-size: 15px;">面试总结</a> <a href="/cn/tags/%E9%A1%B9%E7%9B%AE%E6%80%BB%E7%BB%93/" style="font-size: 10.91px;">项目总结</a> <a href="/cn/tags/%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA/" style="font-size: 10.91px;">项目构建</a> <a href="/cn/tags/%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2/" style="font-size: 11.36px;">项目部署</a> <a href="/cn/tags/%E9%BB%91%E8%8B%B9%E6%9E%9C/" style="font-size: 10px;">黑苹果</a>
+    </div>
+    
+  </div>
+
+  
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">文章分类</h3>
+    <div class="nexmoe-widget">
+
+      <ul class="category-list">
+
+        
+
+
+        
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/ACM/">ACM</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Android/">Android</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/C/">C++</a>
+          <span class="category-list-count">16</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/CUDA/">CUDA</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Chrome扩展/">Chrome扩展</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/ClickHouse/">ClickHouse</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Docker/">Docker</a>
+          <span class="category-list-count">25</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Dolt/">Dolt</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Dubbo/">Dubbo</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/ElasticSearch/">ElasticSearch</a>
+          <span class="category-list-count">8</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Electron/">Electron</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Git/">Git</a>
+          <span class="category-list-count">6</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Github/">Github</a>
+          <span class="category-list-count">5</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Golang/">Golang</a>
+          <span class="category-list-count">31</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/GraalVM/">GraalVM</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/IO基础/">IO基础</a>
+          <span class="category-list-count">4</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Java/">Java</a>
+          <span class="category-list-count">4</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Java源码/">Java源码</a>
+          <span class="category-list-count">16</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/JuiceFS/">JuiceFS</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Kubernetes/">Kubernetes</a>
+          <span class="category-list-count">12</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Life/">Life</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Linux/">Linux</a>
+          <span class="category-list-count">16</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Maven/">Maven</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/MongoDB/">MongoDB</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/MySQL/">MySQL</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Mybatis/">Mybatis</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/NPM/">NPM</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Netty/">Netty</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Nginx/">Nginx</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Node-js/">Node.js</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/PostgreSQL/">PostgreSQL</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Protobuf/">Protobuf</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Python/">Python</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Redash/">Redash</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Redis/">Redis</a>
+          <span class="category-list-count">6</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Ruby/">Ruby</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Rust/">Rust</a>
+          <span class="category-list-count">35</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Spring/">Spring</a>
+          <span class="category-list-count">5</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/TOML/">TOML</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/TypeScript/">TypeScript</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Websocket/">Websocket</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/人工智能/">人工智能</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/人生日记/">人生日记</a>
+          <span class="category-list-count">27</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/分布式/">分布式</a>
+          <span class="category-list-count">10</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/办公/">办公</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/博客管理/">博客管理</a>
+          <span class="category-list-count">6</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/学习案例/">学习案例</a>
+          <span class="category-list-count">6</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/工具分享/">工具分享</a>
+          <span class="category-list-count">41</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/并发编程/">并发编程</a>
+          <span class="category-list-count">13</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/技术杂谈/">技术杂谈</a>
+          <span class="category-list-count">59</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/教师/">教师</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/数据库/">数据库</a>
+          <span class="category-list-count">8</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/日本語/">日本語</a>
+          <span class="category-list-count">11</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/服务自建/">服务自建</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/汇编语言/">汇编语言</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/算法/">算法</a>
+          <span class="category-list-count">5</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/算法题目/">算法题目</a>
+          <span class="category-list-count">60</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/课程/">课程</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/软件安装与配置/">软件安装与配置</a>
+          <span class="category-list-count">20</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/软件测试/">软件测试</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/软考/">软考</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/面试总结/">面试总结</a>
+          <span class="category-list-count">15</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/项目总结/">项目总结</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+      </ul>
+
+    </div>
+  </div>
+
+
+  
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">最新文章</h3>
+    <div class="nexmoe-widget">
+      <ul>
+        
+          <li>
+            <a href="/cn/2026/02/13/%E7%BD%97%E6%B0%B8%E6%B5%A915%E5%A0%82%E6%BC%94%E8%AE%B2%E7%A7%81%E6%95%99%E8%AF%BE%E6%80%BB%E7%BB%93/">罗永浩15堂演讲私教课总结</a>
+          </li>
+        
+          <li>
+            <a href="/cn/2026/02/10/%E5%86%8D%E8%A7%812025%EF%BC%8C%E4%BD%A0%E5%A5%BD2026%EF%BC%81/">再见2025，你好2026！</a>
+          </li>
+        
+          <li>
+            <a href="/cn/2025/08/20/%E4%B8%8B%E4%B8%80%E4%BB%A3%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B%E8%AF%AD%E8%A8%80POML%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/">下一代提示词工程语言POML简明教程</a>
+          </li>
+        
+          <li>
+            <a href="/cn/2025/07/30/%E5%BC%80%E4%BA%86%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E4%B8%93%E9%97%A8%E5%AD%A6%E4%B9%A0%E6%97%A5%E8%AF%AD%E7%9A%84%E5%8D%9A%E5%AE%A2/">开了一个新的专门学习日语的博客</a>
+          </li>
+        
+          <li>
+            <a href="/cn/2025/07/30/%E4%BA%8C%E3%80%81%E6%80%A7%E8%83%BD%E6%A8%A1%E5%9E%8B%E4%B8%8E%E9%80%90%E5%85%83%E7%B4%A0%E4%BC%98%E5%8C%96/">二、性能模型与逐元素优化</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+    <div class="nexmoe-copyright">
+        <span style="color:#707070;font-size: 14px;">
+            本站总访问量<span id="busuanzi_value_site_pv"></span>次 <br />
+            本站访客数<span id="busuanzi_value_site_uv"></span>人次 <br />
+        </span>
+        <span id="showsectime" style="color:#707070;font-size: 14px;">
+            本站已运行0天0小时0分0秒
+        </span>
+        <i class="fa fa-heart throb" style="color:#d43f57">❤</i><br />
+
+        &copy; 2026 Jasonkay
+        Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+        & <a href="https://nexmoe.com/hexo-theme-nexmoe.html" target="_blank">Nexmoe</a>
+    </div>
+
+    <div id="footer-info">
+
+    </div>
+
+    <script type="text/javascript">
+        function NewDate(str) {
+            str = str.split('-');
+            var date = new Date();
+            date.setUTCFullYear(str[0], str[1] - 1, str[2]);
+            date.setUTCHours(0, 0, 0, 0);
+            return date;
+        }
+        function showsectime() {
+            var birthDay = NewDate("2019-09-01");
+            var today = new Date();
+            var timeold = today.getTime() - birthDay.getTime();
+            var sectimeold = timeold / 1000
+            var secondsold = Math.floor(sectimeold);
+            var msPerDay = 24 * 60 * 60 * 1000; var e_daysold = timeold / msPerDay;
+            var daysold = Math.floor(e_daysold);
+            var e_hrsold = (daysold - e_daysold) * -24;
+            var hrsold = Math.floor(e_hrsold);
+            var e_minsold = (hrsold - e_hrsold) * -60;
+            var minsold = Math.floor((hrsold - e_hrsold) * -60); var seconds = Math.floor((minsold - e_minsold) * -60).toString();
+            document.getElementById("showsectime").innerHTML = "本站已运行" + daysold + "天" + hrsold + "小时" + minsold + "分" + seconds + "秒";
+            setTimeout(showsectime, 1000);
+        }
+        showsectime();
+    </script>
+
+</div><!-- .nexmoe-drawer -->
+  </div>
+  <div id="nexmoe-content">
+    <div class="nexmoe-primary">
+      <div class="nexmoe-post">
+  <div class="nexmoe-post-cover">
+    
+    <img src="https://img.paulzzh.com/touhou/random?11">
+    
+    <h1>Java集合六-Stack</h1>
+  </div>
+  <div class="nexmoe-post-meta">
+    <a><i class="nexmoefont icon-calendar-fill"></i>2019年11月27日</a>
+    <a><i class="nexmoefont icon-areachart"></i>1k 字</a>
+    <a><i class="nexmoefont icon-areachart"></i><span class="archive-article-date">阅读量<span
+          id="busuanzi_value_page_pv"></span>
+      </span></a>
+    <a><i class="nexmoefont icon-time-circle-fill"></i>大概 5 分钟</a>
+
+    
+    <a class="nexmoefont icon-appstore-fill -link" href="/cn/categories/Java%E6%BA%90%E7%A0%81/">Java源码</a>
+    
+    
+    <a class="nexmoefont icon-tag-fill -none-link" href="/cn/tags/Java%E5%9F%BA%E7%A1%80/" rel="tag">Java基础</a> <a class="nexmoefont icon-tag-fill -none-link" href="/cn/tags/%E9%9B%86%E5%90%88/" rel="tag">集合</a> <a class="nexmoefont icon-tag-fill -none-link" href="/cn/tags/%E9%9D%A2%E8%AF%95%E6%80%BB%E7%BB%93/" rel="tag">面试总结</a>
+    
+  </div>
+  <article>
+    
+    <div id="toc" class="toc-article">
+      <ul class="markdownIt-TOC">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80-Stack%E4%BB%8B%E7%BB%8D"><span class="toc-text">一. Stack介绍</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C-Stack%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90-%E5%9F%BA%E4%BA%8EJDK11-0-4"><span class="toc-text">二. Stack源码解析(基于JDK11.0.4)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89-Stack%E7%A4%BA%E4%BE%8B"><span class="toc-text">三. Stack示例</span></a></li></ol>
+      </ul>
+    </div>
+    
+    <p>学完<a href="/cn/2019/11/26/Java%E9%9B%86%E5%90%88%E4%BA%94-Vector/">Vector</a>了之后，接下来我们开始学习Stack。Stack很简单，它继承于Vector。学习方式还是和之前一样，先对Stack有个整体认识，然后再学习它的源码；最后再通过实例来学会使用它。内容包括：</p>
+<ul>
+<li>Stack介绍</li>
+<li>Stack源码解析(基于JDK11.0.4)</li>
+<li>Stack示例</li>
+</ul>
+<br/>
+
+<span id="more"></span>
+
+<h2 id="一-Stack介绍"><a href="#一-Stack介绍" class="headerlink" title="一. Stack介绍"></a>一. Stack介绍</h2><p><strong>Stack简介</strong></p>
+<p> Stack是栈, 它的特性是：<strong>先进后出</strong>(FILO, First In Last Out)</p>
+<ul>
+<li><strong>Stack是继承于<a href="/cn/2019/11/26/Java%E9%9B%86%E5%90%88%E4%BA%94-Vector/">Vector</a>(矢量队列)的</strong>, 由于Vector是通过数组实现的，这就意味着，<strong>Stack也是通过数组实现的, 而非链表</strong></li>
+</ul>
+<ul>
+<li>并且Stack也是使用synchronized实现同步的</li>
+</ul>
+<p>显然, 我们<strong>也可以将LinkedList当作栈</strong>来使用</p>
+<br/>
+
+<p><strong>Stack的继承关系</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">java.lang.Object</span><br><span class="line">↳     java.util.AbstractCollection&lt;E&gt;</span><br><span class="line">   ↳     java.util.AbstractList&lt;E&gt;</span><br><span class="line">       ↳     java.util.Vector&lt;E&gt;</span><br><span class="line">           ↳     java.util.Stack&lt;E&gt;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Stack</span>&lt;E&gt; <span class="keyword">extends</span> <span class="title class_">Vector</span>&lt;E&gt; &#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<br/>
+
+<p><strong>Stack和Collection的关系如下图:</strong></p>
+<p><img src="https://raw.gitmirror.com/JasonkayZK/blog_static/master/images/Stack%E5%92%8CCollection%E7%9A%84%E5%85%B3%E7%B3%BB.jpg" alt="Stack和Collection的关系.jpg"></p>
+<br/>
+
+<p><strong>Stack的构造方法</strong></p>
+<p>Stack<strong>只有一个默认构造方法</strong>，如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">public</span> <span class="title function_">Stack</span><span class="params">()</span> &#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<br/>
+
+<p><strong>Stack的API</strong></p>
+<p>Stack是栈，它<strong>常用的API</strong>如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">             <span class="type">boolean</span>       <span class="title function_">empty</span><span class="params">()</span></span><br><span class="line"><span class="keyword">synchronized</span> <span class="type">E</span>             <span class="title function_">peek</span><span class="params">()</span></span><br><span class="line"><span class="keyword">synchronized</span> <span class="type">E</span>             <span class="title function_">pop</span><span class="params">()</span></span><br><span class="line">             <span class="type">E</span>             <span class="title function_">push</span><span class="params">(E object)</span></span><br><span class="line"><span class="keyword">synchronized</span> <span class="type">int</span>           <span class="title function_">search</span><span class="params">(Object o)</span></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+  <br/>
+
+<p>  <strong>注意:</strong> 由于Stack和继承于Vector，因此<strong>它也包含Vector中的全部API</strong></p>
+</blockquote>
+<br/>
+
+<h2 id="二-Stack源码解析-基于JDK11-0-4"><a href="#二-Stack源码解析-基于JDK11-0-4" class="headerlink" title="二. Stack源码解析(基于JDK11.0.4)"></a>二. Stack源码解析(基于JDK11.0.4)</h2><p>Stack的源码非常简单，下面我们对它进行学习:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Stack</span>&lt;E&gt; <span class="keyword">extends</span> <span class="title class_">Vector</span>&lt;E&gt; &#123;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 构造方法</span></span><br><span class="line">    <span class="type">public</span> <span class="title function_">Stack</span><span class="params">()</span> &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// push方法：将元素存入栈顶</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">E</span> <span class="title function_">push</span><span class="params">(E item)</span> &#123;</span><br><span class="line">        <span class="comment">// 将元素存入栈顶</span></span><br><span class="line">        <span class="comment">// addElement()的实现在Vector.java中</span></span><br><span class="line">        addElement(item);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> item;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// pop方法：返回栈顶元素，并将其从栈中删除</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="type">E</span> <span class="title function_">pop</span><span class="params">()</span> &#123;</span><br><span class="line">        E       obj;</span><br><span class="line">        <span class="type">int</span>     <span class="variable">len</span> <span class="operator">=</span> size();</span><br><span class="line"></span><br><span class="line">        obj = peek();</span><br><span class="line">        <span class="comment">// 删除栈顶元素，removeElementAt()的实现在Vector.java中</span></span><br><span class="line">        removeElementAt(len - <span class="number">1</span>);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> obj;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// peek方法：返回栈顶元素，不执行删除操作</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="type">E</span> <span class="title function_">peek</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">int</span>     <span class="variable">len</span> <span class="operator">=</span> size();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (len == <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> <span class="title class_">EmptyStackException</span>();</span><br><span class="line">        <span class="comment">// 返回栈顶元素，elementAt()具体实现在Vector.java中</span></span><br><span class="line">        <span class="keyword">return</span> elementAt(len - <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 栈是否为空</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">boolean</span> <span class="title function_">empty</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> size() == <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 查找元素o(使用equals()方法)在栈中的位置：由栈底向栈顶方向查找</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="type">int</span> <span class="title function_">search</span><span class="params">(Object o)</span> &#123;</span><br><span class="line">        <span class="comment">// 获取元素索引，elementAt()具体实现在Vector.java中</span></span><br><span class="line">        <span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> lastIndexOf(o);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (i &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> size() - i;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> -<span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 版本ID, 这个用于版本升级控制</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">long</span> <span class="variable">serialVersionUID</span> <span class="operator">=</span> <span class="number">1224463164541339165L</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<br/>
+
+<p><strong>总结:</strong></p>
+<p><strong>① Stack实际上是通过数组去实现的</strong></p>
+<ul>
+<li>执行<strong>push</strong>时(即，<strong>将元素推入栈中</strong>)，是通过将元素追加的数组的末尾中</li>
+</ul>
+<ul>
+<li>执行<strong>peek</strong>时(即，<strong>取出栈顶元素，不执行删除</strong>)，是返回数组末尾的元素</li>
+</ul>
+<ul>
+<li>执行<strong>pop</strong>时(即，<strong>取出栈顶元素，并将该元素从栈中删除</strong>)，是取出数组末尾的元素，然后将该元素从数组中删除</li>
+</ul>
+<p><strong>② Stack继承于Vector，意味着Vector拥有的属性和功能，Stack都拥有</strong></p>
+<p><strong>③</strong> Stack继承于Vector，也意味着<strong>Stack也是通过synchronized这种低效的方式实现多线程同步</strong>的</p>
+<p>Vector都已经被淘汰了, 他的儿子当然也被淘汰了</p>
+</blockquote>
+<br/>
+
+<h2 id="三-Stack示例"><a href="#三-Stack示例" class="headerlink" title="三. Stack示例"></a>三. Stack示例</h2><p>下面我们通过实例学习如何使用Stack</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@desc</span> Stack的测试程序。测试常用API的用法</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> zk</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">StackTest</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">Stack</span> <span class="variable">stack</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Stack</span>();</span><br><span class="line">        <span class="comment">// 将1,2,3,4,5添加到栈中</span></span><br><span class="line">        <span class="keyword">for</span>(<span class="type">int</span> <span class="variable">i</span><span class="operator">=</span><span class="number">1</span>; i&lt;<span class="number">6</span>; i++) &#123;</span><br><span class="line">            stack.push(String.valueOf(i));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 遍历并打印出该栈</span></span><br><span class="line">        iteratorThroughRandomAccess(stack) ;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 查找“2”在栈中的位置，并输出</span></span><br><span class="line">        <span class="type">int</span> <span class="variable">pos</span> <span class="operator">=</span> stack.search(<span class="string">&quot;2&quot;</span>);</span><br><span class="line">        System.out.println(<span class="string">&quot;the postion of 2 is:&quot;</span>+pos);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// pup栈顶元素之后，遍历栈</span></span><br><span class="line">        stack.pop();</span><br><span class="line">        iteratorThroughRandomAccess(stack) ;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// peek栈顶元素之后，遍历栈</span></span><br><span class="line">        <span class="type">String</span> <span class="variable">val</span> <span class="operator">=</span> (String)stack.peek();</span><br><span class="line">        System.out.println(<span class="string">&quot;peek:&quot;</span>+val);</span><br><span class="line">        iteratorThroughRandomAccess(stack) ;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 通过Iterator去遍历Stack</span></span><br><span class="line">        iteratorThroughIterator(stack) ;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 通过快速访问遍历Stack</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">void</span> <span class="title function_">iteratorThroughRandomAccess</span><span class="params">(List list)</span> &#123;</span><br><span class="line">        <span class="type">String</span> <span class="variable">val</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span><span class="operator">=</span><span class="number">0</span>; i&lt;list.size(); i++) &#123;</span><br><span class="line">            val = (String)list.get(i);</span><br><span class="line">            System.out.print(val+<span class="string">&quot; &quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 通过迭代器遍历Stack</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">void</span> <span class="title function_">iteratorThroughIterator</span><span class="params">(List list)</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="type">String</span> <span class="variable">val</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">for</span>(<span class="type">Iterator</span> <span class="variable">iter</span> <span class="operator">=</span> list.iterator(); iter.hasNext(); ) &#123;</span><br><span class="line">            val = (String)iter.next();</span><br><span class="line">            System.out.print(val+<span class="string">&quot; &quot;</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">------- Output -------</span><br><span class="line"><span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span> </span><br><span class="line">the postion of <span class="number">2</span> is:<span class="number">4</span></span><br><span class="line"><span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> </span><br><span class="line">peek:<span class="number">4</span></span><br><span class="line"><span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> </span><br><span class="line"><span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span></span><br></pre></td></tr></table></figure>
+
+<br/>
+  </article>
+
+  <div id="like-container" style="text-align: center">
+    <div class="like-feed">
+      <p>觉得本文不错就点个<span>♥</span>再走吧~</p>
+      <div class="like-img">
+        <div class="like-heart" id="like" rel="like"></div>
+        <div class="like-count" id="like-count"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 文章分享 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/social-share.js/1.0.16/css/share.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/social-share.js/1.0.16/js/social-share.min.js"></script>
+  <div class="social-share" data-mode="prepend" data-disabled="tencent,diandian"></div>
+  <br />
+
+  
+  
+<div class="nexmoe-post-copyright">
+<i class="mdui-list-item-icon nexmoefont icon-info-circle"></i>
+<strong>本文作者：</strong>Jasonkay<br>
+<strong>本文链接：</strong><a href="https://jasonkayzk.github.io/cn/2019/11/27/Java%E9%9B%86%E5%90%88%E5%85%AD-Stack/" title="https:&#x2F;&#x2F;jasonkayzk.github.io&#x2F;cn&#x2F;2019&#x2F;11&#x2F;27&#x2F;Java%E9%9B%86%E5%90%88%E5%85%AD-Stack&#x2F;" target="_blank" rel="noopener">https:&#x2F;&#x2F;jasonkayzk.github.io&#x2F;cn&#x2F;2019&#x2F;11&#x2F;27&#x2F;Java%E9%9B%86%E5%90%88%E5%85%AD-Stack&#x2F;</a><br>
+
+  <strong>版权声明：</strong>本文采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/cn/deed.zh" target="_blank">CC BY-NC-SA 3.0 CN</a> 协议进行许可
+
+</div>
+
+
+  
+
+  <!-- 增加面试点击标题才显示答案等效果! -->
+  <!-- <script type="text/javascript">
+    $(".question").click(function () {
+      var a = $(".answer").eq($(".question").index(this));
+      a.is(".answer_shown") ? a.animate({ 'opacity': '1' }, 800).removeClass("answer_shown") : a.animate({ 'opacity': '0' }, 800).addClass("answer_shown");
+    });
+  </script> -->
+  <!-- <style>
+    .answer_shown {
+      opacity: 0;
+    }
+  </style> -->
+
+  <!-- 加载博客点赞功能 -->
+  <script>
+    function ajax(options) {
+      return new Promise(function (resolve, reject) {
+        $.ajax(options).done(resolve).fail(reject);
+      });
+    }
+
+    var docName = $('meta[property="og:title"]').attr('content');
+    
+    // 跳过localhost
+    if (location.hostname !== 'localhost') {
+      // 初始化
+      ajax({
+        url: "https://service-rvqf6dam-1257829547.gz.apigw.tencentcs.com/blog_like/",
+        type: 'post',
+        contentType: 'application/json; charset=utf-8',
+        data: JSON.stringify({
+          "actionId": "get",
+          "docName": docName
+        })
+      }).then(
+        function fulfillHandler(data) {
+          $('#like-count').text(data.likeNum);
+        },
+        function rejectHandler(jqXHR, textStatus, errorThrown) {
+          $('#like-count').text(0);
+          console.log(jqXHR, textStatus, errorThrown);
+        }
+      ).catch(function errorHandler(error) {
+        $('#like-count').text(0);
+        console.log(error);
+      });
+
+      $(document).ready(function () {
+        $(".like-heart").on("click", function () {
+          var heart = $(this);
+          var likeCount = $("#like-count" + heart.attr("id").split("like")[1]);
+          var intCount = parseInt(likeCount.html());
+          var rel = heart.attr("rel");
+
+          if (rel === "like") {
+            likeCount.html(intCount + 1);
+            heart.addClass("like-heartAnimation").attr("rel", "unlike");
+            ajax({
+              url: "https://service-rvqf6dam-1257829547.gz.apigw.tencentcs.com/blog_like/",
+              type: 'post',
+              contentType: 'application/json; charset=utf-8',
+              data: JSON.stringify({
+                "actionId": "add",
+                "docName": docName
+              })
+            }).catch(function errorHandler(error) {
+              console.log(error);
+            });
+          } else {
+            likeCount.html(intCount - 1);
+            heart.removeClass("like-heartAnimation").attr("rel", "like");
+            heart.css("background-position", "left");
+            ajax({
+              url: "https://service-rvqf6dam-1257829547.gz.apigw.tencentcs.com/blog_like/",
+              type: 'post',
+              contentType: 'application/json; charset=utf-8',
+              data: JSON.stringify({
+                "actionId": "subtract",
+                "docName": docName
+              })
+            }).catch(function errorHandler(error) {
+              console.log(error);
+            });
+          }
+        }).on("mouseleave", function () {
+          $(this).css("background-position", "");
+        });
+      });
+    }
+  </script>
+  <style>
+    #like-container {
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .like-img {
+      width: 200px;
+      height: 100px;
+      display: inline-block;
+    }
+
+    .like-heart {
+      float: left;
+      background: url(/cn/images/web_heart_animation.png);
+      background-position: left;
+      background-repeat: no-repeat;
+      height: 50px;
+      width: 120px;
+      left: -14px;
+      background-size: 2900%;
+    }
+
+    .like-count {
+      float: left;
+      font-family: 'Georgia', Times, Times New Roman, serif;
+      font-size: 35px;
+      color: #999999;
+      text-align: left;
+      height: 50px;
+      width: 50px;
+      line-height: 44px;
+    }
+
+    .like-heart:hover,
+    .like-heart:focus {
+      background-position: right;
+    }
+
+    @-webkit-keyframes heartBlast {
+      0% {
+        background-position: left;
+      }
+
+      100% {
+        background-position: right;
+      }
+    }
+
+    @keyframes heartBlast {
+      0% {
+        background-position: left;
+      }
+
+      100% {
+        background-position: right;
+      }
+    }
+
+    .like-heartAnimation {
+      display: inline-block;
+      -webkit-animation-name: heartBlast;
+      animation-name: heartBlast;
+      -webkit-animation-duration: .8s;
+      animation-duration: .8s;
+      -webkit-animation-iteration-count: 1;
+      animation-iteration-count: 1;
+      -webkit-animation-timing-function: steps(28);
+      animation-timing-function: steps(28);
+      background-position: right;
+    }
+
+    .like-feed {
+      height: 90px;
+      margin-bottom: 20px;
+      text-align: center
+    }
+
+    .like-feed p {
+      font-family: 'microsoft yahei', 'Georgia';
+      font-size: 25px;
+    }
+
+    .like-feed span {
+      font-size: 30px;
+      color: #D33115;
+    }
+  </style>
+
+  <section class="nexmoe-comment">
+    <div class="utterances"></div>
+<style>
+    .v .vwrap {
+      border: 1px dashed #c4bfbf
+    }
+  
+    .v .vwrap .vheader .vinput {
+      border-bottom: 1px dashed #c4bfbf
+    }
+</style>
+<script src="https://utteranc.es/client.js"
+        repo='JasonkayZK/cn'
+        issue-term="title"
+        label="comment✨💬✨"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+
+</section>
+</div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/mdui@0.4.3/dist/js/mdui.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
+ 
+    <script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script>
+
+
+ 
+    <script src="https://cdn.jsdelivr.net/npm/smoothscroll-for-websites@1.4.9/SmoothScroll.min.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.16.2/build/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<script src="/cn/js/app.js?v=1792901139576"></script>
+<script src="https://cdn.jsdelivr.net/npm/lazysizes@5.1.0/lazysizes.min.js"></script>
+
+
+
+
+  
+    <!-- Google Analytics -->
+<script>
+    window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+    ga('create', 'G-1NWK4EEKDF', 'auto');
+    ga('send', 'pageview');
+</script>
+<script async src="https://www.google-analytics.com/analytics.js"></script>
+
+
+
+
+
+
+    <!-- baidu Analytics -->
+<script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?5f5ec71a32c11ff54dff64d0341017b0";
+      var s = document.getElementsByTagName("script")[0]; 
+      s.parentNode.insertBefore(hm, s);
+    })();
+</script>
+
+</body>
+
+<!-- 页面点击小红心 -->
+<!-- 
+<script type="text/javascript">
+  !function (e, t, a) { function n() { c(".heart{width: 10px;height: 10px;position: fixed;background: #f00;transform: rotate(45deg);-webkit-transform: rotate(45deg);-moz-transform: rotate(45deg);}.heart:after,.heart:before{content: '';width: inherit;height: inherit;background: inherit;border-radius: 50%;-webkit-border-radius: 50%;-moz-border-radius: 50%;position: fixed;}.heart:after{top: -5px;}.heart:before{left: -5px;}"), o(), r() } function r() { for (var e = 0; e < d.length; e++)d[e].alpha <= 0 ? (t.body.removeChild(d[e].el), d.splice(e, 1)) : (d[e].y--, d[e].scale += .004, d[e].alpha -= .013, d[e].el.style.cssText = "left:" + d[e].x + "px;top:" + d[e].y + "px;opacity:" + d[e].alpha + ";transform:scale(" + d[e].scale + "," + d[e].scale + ") rotate(45deg);background:" + d[e].color + ";z-index:99999"); requestAnimationFrame(r) } function o() { var t = "function" == typeof e.onclick && e.onclick; e.onclick = function (e) { t && t(), i(e) } } function i(e) { var a = t.createElement("div"); a.className = "heart", d.push({ el: a, x: e.clientX - 5, y: e.clientY - 5, scale: 1, alpha: 1, color: s() }), t.body.appendChild(a) } function c(e) { var a = t.createElement("style"); a.type = "text/css"; try { a.appendChild(t.createTextNode(e)) } catch (t) { a.styleSheet.cssText = e } t.getElementsByTagName("head")[0].appendChild(a) } function s() { return "rgb(" + ~~(255 * Math.random()) + "," + ~~(255 * Math.random()) + "," + ~~(255 * Math.random()) + ")" } var d = []; e.requestAnimationFrame = function () { return e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame || function (e) { setTimeout(e, 1e3 / 60) } }(), n() }(window, document);
+</script>
+ -->
+ 
+<script>
+  // 进度条加载: nprogress
+  NProgress.start()
+  NProgress.done()
+</script>
+
+<script type="text/javascript" defer>
+  $(document).ready(function () {
+    $.goup({
+      trigger: 100,
+      bottomOffset: 50,
+      locationOffset: 50,
+      title: '0%',
+      titleAsText: true
+    });
+    $(".goup-container").css("background", "#64dcf0 none repeat scroll 0% 0%").css("opacity", 0.9);
+    $(".goup-text").css("font-weight", 600).css("opacity", 0.9);
+  });
+
+  $(document).scroll(function () {
+    var d_h = $(document).height();
+    var c_h = $(window).height();
+    var c_t_h = $(window).scrollTop();
+    var schedule = c_t_h / (d_h - c_h - 0.5);
+    var str = Number(schedule * 100).toFixed();
+    str += "%";
+    $(".goup-text").text(str);
+  });
+</script>
+
+<!-- 站内通知 -->
+<script src="/cn/js/notification.js"></script>
+<script>
+  'use strict';
+
+  (function () {
+    $(function () {
+      $('.position').click(function (event) {
+        var el = $(event.target);
+        $('.position').removeClass('selected');
+        el.addClass('selected');
+        position = el.attr('data-position');
+      });
+    });
+  });
+
+  var position = 2;
+  // 关闭百毫秒数
+  var closeTime = 50;
+  var notifyFunc = function () {
+    // Notification.create(
+    //   // Title
+    //   "Tencent内推中📧",
+    //   // Text
+    //   "简历投递处：<BR/><a href='/hiring/'>简历投递</a>",
+    //   // Illustration
+    //   "/cn/images/avatar4.jpg",
+    //   // Effect
+    //   'fadeInRight',
+    //   // Position 1, 2, 3, 4
+    //   position,
+    //   closeTime
+    // );
+    // setTimeout(() => {
+    //   Notification.create(
+    //     "资源下载⚡",
+    //     "传送门：<BR/><a href='/sharing/'>文件分享</a>",
+    //     "/cn/images/avatar4.jpg",
+    //     'fadeInRight',
+    //     position,
+    //     closeTime
+    //   )
+    // }, 350);
+    setTimeout(() => {
+      Notification.create(
+        "RSS订阅📢",
+        "传送门：<BR/><a href='/cn/atom.xml'>RSS订阅</a>",
+        "/cn/images/avatar4.jpg",
+        'fadeInRight',
+        position,
+        closeTime
+      )
+    }, 0);
+    setTimeout(() => {
+        Notification.create(
+        "在线群聊💭",
+        "传送门：<BR/><a href='/cn/chat/'>畅所欲言</a>",
+        "/cn/images/avatar4.jpg",
+        'fadeInRight',
+        position,
+        closeTime
+      )
+    }, 350);
+    setTimeout(() => {
+        Notification.create(
+        // "跑步健身🏃",
+        // "传送门：<BR/><a href='/running/'>跑步健身</a>",
+        "摄影分享📷",
+        "传送门：<BR/><a href='http://159.75.131.252:32352/'>摄影分享</a>",
+        "/cn/images/avatar4.jpg",
+        'fadeInRight',
+        position,
+        closeTime
+      )
+    }, 700);
+  };
+
+  (function once() {
+    if (sessionStorage.getItem('load') == null) {
+      notifyFunc();
+      sessionStorage.setItem('load', false);
+    } else {
+      return;
+    }
+  })();
+</script>
+<script>
+  $(document).on("click", ".dismiss", function (e) {
+    Notification.hide(e.currentTarget.classList[1].split('-')[1]);
+  })
+</script>
+
+</html>

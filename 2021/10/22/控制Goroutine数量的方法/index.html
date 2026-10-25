@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script>window.SITE_ROOT = "/cn/";</script>
+  <script type="text/javascript" src="https://cdn.bootcdn.net/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script type="text/javascript" src="/cn/js/jquery.goup.min.js" defer></script>
+  
+  <title>控制Goroutine数量的方法 - 张小凯的博客</title>
+  <meta charset="UTF-8">
+  <meta name="description" content="謙虚は人を進歩させ、ごうまんは人を落後させる。社会の初心者から、よろしくお願いします！">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  
+  
+
+  <link rel="shortcut icon" href="/cn/favicon.ico" type="image/png" />
+  <meta name="description" content="在我们写代码的时候，经常会有批量创建任务并等待返回的场景；此时使用生产消费者并发的提交任务来代替for循环逐个执行任务能够大大提高代码效率；然而不加限制的创建Goroutine也是会有内存溢出、CPU切换过多等资源浪费的情况；本文讲述了Go中一些常用的控制Goroutine数量的方法；">
+<meta property="og:type" content="article">
+<meta property="og:title" content="控制Goroutine数量的方法">
+<meta property="og:url" content="https://jasonkayzk.github.io/cn/2021/10/22/%E6%8E%A7%E5%88%B6Goroutine%E6%95%B0%E9%87%8F%E7%9A%84%E6%96%B9%E6%B3%95/index.html">
+<meta property="og:site_name" content="张小凯的博客">
+<meta property="og:description" content="在我们写代码的时候，经常会有批量创建任务并等待返回的场景；此时使用生产消费者并发的提交任务来代替for循环逐个执行任务能够大大提高代码效率；然而不加限制的创建Goroutine也是会有内存溢出、CPU切换过多等资源浪费的情况；本文讲述了Go中一些常用的控制Goroutine数量的方法；">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-10-22T09:49:57.000Z">
+<meta property="article:modified_time" content="2026-10-25T04:05:16.289Z">
+<meta property="article:author" content="Jasonkay">
+<meta property="article:tag" content="Golang">
+<meta property="article:tag" content="Goroutine">
+<meta property="article:tag" content="并发编程">
+<meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mdui@0.4.3/dist/css/mdui.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.16.2/styles/atom-one-dark.css">
+  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" />
+  
+  
+  <link rel="stylesheet" href="//at.alicdn.com/t/font_1038733_0xvrvpg9c0r.css">
+  <link rel="stylesheet" href="/cn/css/style.css?v=1792901139078">
+
+  <!-- 进度条加载: nprogress -->
+  <link href="https://cdn.bootcss.com/nprogress/0.2.0/nprogress.min.css" rel="stylesheet">
+  <script src="https://cdn.bootcss.com/nprogress/0.2.0/nprogress.min.js"></script>
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6617852905105366"
+  crossorigin="anonymous"></script>
+  <!-- Cloudflare Web Analytics -->
+   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "73d46a730654451bac205cdc12bea918"}'></script>
+  <!-- umami Web Analytics -->
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="23fadd4b-d559-4ae0-a4f6-f90680c3d4c0"></script>
+
+  <!-- 本地搜索js -->
+  <script type="text/javascript" src="/cn/js/search.js"></script>
+
+  <!-- 百度站点管理 -->
+  <meta name="baidu-site-verification" content="code-SKIvb4A1Qx" />
+
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-1NWK4EEKDF');
+  </script>
+
+  <!-- 站内通知 -->
+  <link href='https://apps.bdimg.com/libs/bootstrap/3.3.4/css/bootstrap.css' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" type="text/css" href="/cn/css/default.css">
+  <link rel='stylesheet' href='/cn/css/animate.min.css'>
+  <link rel="stylesheet" href="/cn/css/notification.css">
+  <link rel="stylesheet" href="/cn/css/index.css">
+<meta name="generator" content="Hexo 8.1.2"><link rel="alternate" href="/cn/atom.xml" title="张小凯的博客" type="application/atom+xml">
+</head>
+
+<!-- 文章阅读进度条样式 -->
+<style>
+  #content_progress {
+      /* Positioning */
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 99999;
+      width: 100%;
+      height: 3px;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      border: none;
+      background-color: transparent;
+      color: #ffaa73;
+}
+
+#content_progress::-webkit-progress-bar {
+      background-color: transparent;
+}
+
+#content_progress::-webkit-progress-value {
+      background-color: #ffaa73;
+}
+
+#content_progress::-moz-progress-bar {
+      background-color:#ffaa73;
+}
+</style>
+<!-- 文章阅读进度条JS -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      var winHeight = window.innerHeight,
+            docHeight = document.documentElement.scrollHeight,
+            progressBar = document.querySelector('#content_progress');
+      progressBar.max = docHeight - winHeight;
+      progressBar.value = window.scrollY;
+
+      document.addEventListener('scroll', function () {
+            progressBar.max = document.documentElement.scrollHeight - window.innerHeight;
+            progressBar.value = window.scrollY;
+      });
+});
+</script>
+
+<body class="mdui-drawer-body-left">
+  <!-- 文章阅读进度条 -->
+  <progress id="content_progress" value="0"></progress>
+
+  <!-- 音频播放 -->
+  <!-- <link rel="stylesheet" href="/dist/APlayer.min.css">
+  <div id="aplayer"></div>
+  <script type="text/javascript" src="/dist/APlayer.min.js"></script>
+  <script type="text/javascript" src="/dist/music.js"></script> -->
+
+  
+  <div id="nexmoe-background">
+    <div class="nexmoe-bg" style="background-image: url(/cn/images/bg.jpg)"></div>
+    <div class="mdui-appbar mdui-shadow-0">
+      <div class="mdui-toolbar">
+        <a mdui-drawer="{target: '#drawer', swipe: true}" title="menu" class="mdui-btn mdui-btn-icon"><i
+            class="mdui-icon material-icons">menu</i></a>
+        <div class="mdui-toolbar-spacer"></div>
+        <a href="/cn/" title="Jasonkay" class="mdui-btn mdui-btn-icon"><img
+            src="/cn/images/avatar4.jpg"></a>
+      </div>
+    </div>
+  </div>
+  <div id="nexmoe-header">
+    <div class="nexmoe-drawer mdui-drawer" id="drawer">
+    <div class="nexmoe-avatar mdui-ripple">
+        <a href="/cn/" title="Jasonkay">
+            <img src="/cn/images/avatar4.jpg" alt="Jasonkay">
+        </a>
+    </div>
+
+    <!-- 黑白切换css -->
+    <!-- <style>
+        .light-dark-checkbox {
+            margin: 0 auto;
+        }
+
+        /* The switch - the box around the slider */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        /* Hide default HTML checkbox */
+        .switch .theme-switcher {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        /* The slider */
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            transition: 0.4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "🌞";
+            height: 0px;
+            width: 0px;
+            left: -10px;
+            top: 16px;
+            line-height: 0px;
+            transition: 0.4s;
+        }
+
+        .theme-switcher:checked+.slider:before {
+            left: 35px;
+            content: "🌑";
+        }
+
+        .theme-switcher:checked+.slider:before {
+            transform: translateX(45px);
+        }
+
+        /* Rounded sliders */
+        .slider.round {
+            border-radius: 40px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        /* 暗黑样式 */
+        body.night {
+            background-color: #263238;
+            color: #aaa;
+        }
+        body.night img {
+            filter: brightness(30%);
+        }
+        article.night {
+            background-color: black;
+            color: white;
+        }
+    </style> -->
+
+    <!-- 黑白开关 -->
+    <!-- <div class="nexmoe-list-item mdui-list-item">
+        <div class="light-dark-checkbox">
+            <div>
+                黑白模式切换(Beta)
+            </div>
+            <label class="switch">
+                <input id="light-dark-input" type="checkbox" onclick="switchTheme();" class="theme-switcher">
+                <span class="slider round"></span>
+            </label>
+        </div>
+    </div> -->
+
+    <!-- 黑白切换js -->
+    <!-- <script>
+        // get hours of the day in 24Hr format (0-23)
+        var hr = (new Date()).getHours();
+
+        $(document).ready(function () {
+            var theme = sessionStorage.getItem("theme");
+            if (theme == "dark") {
+                document.body.classList.add('night');
+                console.log('夜间模式开启');
+            } else if (theme == "light") {
+                document.body.classList.remove('night');
+                console.log('夜间模式关闭');
+            } else {
+                setDefaultTheme(hr);
+            }
+        });
+
+        function switchTheme() {
+            if (sessionStorage.getItem("theme") == "dark") {
+                sessionStorage.setItem("theme", "light");
+                document.body.classList.remove('night');
+                console.log('夜间模式关闭');
+            } else if (sessionStorage.getItem("theme") == "light") {
+                sessionStorage.setItem("theme", "dark");
+                document.body.classList.add('night');
+                console.log('夜间模式开启');
+            } else {
+                setDefaultTheme(hr);
+            }
+        };
+
+        function setDefaultTheme(curHr) {
+            // 6:00-18:00 light
+            if (curHr >= 6 && curHr <= 18) {
+                document.body.classList.remove('night');
+                console.log('夜间模式关闭');
+                sessionStorage.setItem("theme", "light");
+                $("#light-dark-input").attr("checked", false);
+            } else {
+                // 0:00-6:00 & 18:00-00:00 night
+                sessionStorage.setItem("theme", "dark");
+                document.body.classList.add('night');
+                console.log('夜间模式开启');
+                $("#light-dark-input").attr("checked", true);
+            }
+        }
+    </script> -->
+
+    <div class="nexmoe-count">
+        <div><span>文章</span>524</div>
+        <div><span>标签</span>277</div>
+        <div><span>分类</span>67</div>
+    </div>
+    <ul class="nexmoe-list mdui-list" mdui-collapse="{accordion: true}">
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/"
+            title="回到首页">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-home"></i>
+            <div class="mdui-list-item-content">
+                回到首页
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="https://jasonkayzk.github.io/jp/"
+            title="日语分站">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-calendar-fill"></i>
+            <div class="mdui-list-item-content">
+                日语分站
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/about/"
+            title="关于博客">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-eye-fill"></i>
+            <div class="mdui-list-item-content">
+                关于博客
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/archive"
+            title="文章归档">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-container"></i>
+            <div class="mdui-list-item-content">
+                文章归档
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/anki/"
+            title="Anki笔记">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-tag-fill"></i>
+            <div class="mdui-list-item-content">
+                Anki笔记
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/study/"
+            title="学习进度">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-telegram"></i>
+            <div class="mdui-list-item-content">
+                学习进度
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/running/"
+            title="跑步健身">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-dribbble"></i>
+            <div class="mdui-list-item-content">
+                跑步健身
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/interview/"
+            title="面试相关">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-container"></i>
+            <div class="mdui-list-item-content">
+                面试相关
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/algorithm/"
+            title="算法总结">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-areachart"></i>
+            <div class="mdui-list-item-content">
+                算法总结
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/installing/"
+            title="软件安装">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-unorderedlist"></i>
+            <div class="mdui-list-item-content">
+                软件安装
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/board/"
+            title="创意白板">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-tag-fill"></i>
+            <div class="mdui-list-item-content">
+                创意白板
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="http://159.75.131.252:32352/"
+            title="摄影分享">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-telegram"></i>
+            <div class="mdui-list-item-content">
+                摄影分享
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/chat/"
+            title="畅所欲言">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-ellipsis"></i>
+            <div class="mdui-list-item-content">
+                畅所欲言
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/realtime/"
+            title="实时数据统计">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-time-circle-fill"></i>
+            <div class="mdui-list-item-content">
+                实时数据统计
+            </div>
+        </a>
+        
+        <a class="nexmoe-list-item mdui-list-item mdui-ripple" href="/cn/py/"
+            title="友情链接">
+            <i
+                class="mdui-list-item-icon nexmoefont icon-container"></i>
+            <div class="mdui-list-item-content">
+                友情链接
+            </div>
+        </a>
+        
+    </ul>
+    <aside id="nexmoe-sidebar">
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">社交按钮</h3>
+    <div class="nexmoe-widget nexmoe-social">
+        <a class="mdui-ripple" href="https://space.bilibili.com/23364338" target="_blank" mdui-tooltip="{content: '哔哩哔哩'}" style="color: rgb(231, 106, 141);background-color: rgba(231, 106, 141, .15);">
+            <i class="nexmoefont icon-bilibili"></i>
+        </a><a class="mdui-ripple" href="https://github.com/jasonkayzk/" target="_blank" mdui-tooltip="{content: 'GitHub'}" style="color: rgb(25, 23, 23);background-color: rgba(25, 23, 23, .15);">
+            <i class="nexmoefont icon-github"></i>
+        </a><a class="mdui-ripple" href="https://steamcommunity.com/id/jasonkayzk/" target="_blank" mdui-tooltip="{content: 'Steam'}" style="color: rgb(29, 161, 242);background-color: rgba(29, 161, 242, .1);">
+            <i class="nexmoefont icon-steam"></i>
+        </a><a class="mdui-ripple" href="https://twitter.com/Jasonkay_ZK/" target="_blank" mdui-tooltip="{content: 'Twitter'}" style="color: rgb(29, 161, 242);background-color: rgba(29, 161, 242, .1);">
+            <i class="nexmoefont icon-twitter"></i>
+        </a><a class="mdui-ripple" href="mailto:jasonkayzk@gmail.com" target="_blank" mdui-tooltip="{content: 'Mail'}" style="color: rgb(29, 161, 242);background-color: rgba(29, 161, 242, .1);">
+            <i class="nexmoefont icon-mail-fill"></i>
+        </a>
+    </div>
+</div>
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">站内搜索</h3>
+    <div class="nexmoe-widget nexmoe-search">
+        <form class="site-search-form">
+            <input type="text" id="local-search-input" class="st-search-input" />
+        </form>
+        <div id="local-search-result" class="local-search-result-cls">
+        </div>
+    </div>
+</div>
+
+<!-- 执行本地搜索脚本 -->
+<script type="text/javascript">
+    var path = "/cn/search.xml";
+    searchFunc(path, 'local-search-input', 'local-search-result');
+</script>
+
+<style type="text/css">
+/* 搜索条 */
+.site-search-form {
+    text-align: center;
+}
+#local-search-input {
+    width: 100%;
+}
+
+/* 搜索结果关闭 */
+#local-search-close {
+    font-size: 22.5px;
+    cursor: pointer;
+    color: #ff4e6a;
+}
+
+.search-result-list > li {
+    line-height: 0.75;
+    margin-top: -5px;
+}
+
+</style>
+  
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">标签云</h3>
+    <div id="randomtagcloud" class="nexmoe-widget tagcloud">
+      <a href="/cn/tags/2048/" style="font-size: 10px;">2048</a> <a href="/cn/tags/ACM/" style="font-size: 10px;">ACM</a> <a href="/cn/tags/AI/" style="font-size: 10px;">AI</a> <a href="/cn/tags/AUFS/" style="font-size: 10px;">AUFS</a> <a href="/cn/tags/Android/" style="font-size: 10.91px;">Android</a> <a href="/cn/tags/AppStore/" style="font-size: 10px;">AppStore</a> <a href="/cn/tags/AppleScript/" style="font-size: 10px;">AppleScript</a> <a href="/cn/tags/Aria2/" style="font-size: 10.91px;">Aria2</a> <a href="/cn/tags/Async/" style="font-size: 10px;">Async</a> <a href="/cn/tags/BFS/" style="font-size: 10.45px;">BFS</a> <a href="/cn/tags/Bash/" style="font-size: 10.45px;">Bash</a> <a href="/cn/tags/BitTorrent/" style="font-size: 10px;">BitTorrent</a> <a href="/cn/tags/BloomFilter/" style="font-size: 10px;">BloomFilter</a> <a href="/cn/tags/Bytebase/" style="font-size: 10px;">Bytebase</a> <a href="/cn/tags/C/" style="font-size: 15.91px;">C++</a> <a href="/cn/tags/CAP/" style="font-size: 10px;">CAP</a> <a href="/cn/tags/CDN/" style="font-size: 10.45px;">CDN</a> <a href="/cn/tags/CGLib%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/" style="font-size: 10px;">CGLib动态代理</a> <a href="/cn/tags/CUDA/" style="font-size: 10.45px;">CUDA</a> <a href="/cn/tags/Cache/" style="font-size: 10px;">Cache</a> <a href="/cn/tags/Caffeine/" style="font-size: 10px;">Caffeine</a> <a href="/cn/tags/Cargo/" style="font-size: 11.82px;">Cargo</a> <a href="/cn/tags/CentOS/" style="font-size: 12.27px;">CentOS</a> <a href="/cn/tags/Cgroups/" style="font-size: 10px;">Cgroups</a> <a href="/cn/tags/Chrome%E6%89%A9%E5%B1%95/" style="font-size: 10px;">Chrome扩展</a> <a href="/cn/tags/Cli/" style="font-size: 10.45px;">Cli</a> <a href="/cn/tags/ClickHouse/" style="font-size: 10px;">ClickHouse</a> <a href="/cn/tags/Cling/" style="font-size: 10px;">Cling</a> <a href="/cn/tags/Clion/" style="font-size: 10px;">Clion</a> <a href="/cn/tags/Colima/" style="font-size: 10px;">Colima</a> <a href="/cn/tags/Container/" style="font-size: 10px;">Container</a> <a href="/cn/tags/DFS/" style="font-size: 10.45px;">DFS</a> <a href="/cn/tags/DLL/" style="font-size: 10.45px;">DLL</a> <a href="/cn/tags/Debian/" style="font-size: 10px;">Debian</a> <a href="/cn/tags/Docker/" style="font-size: 18.64px;">Docker</a> <a href="/cn/tags/Docker-Compose/" style="font-size: 10.45px;">Docker-Compose</a> <a href="/cn/tags/DockerHub/" style="font-size: 10px;">DockerHub</a> <a href="/cn/tags/Dolt/" style="font-size: 10px;">Dolt</a> <a href="/cn/tags/Dubbo/" style="font-size: 10.91px;">Dubbo</a> <a href="/cn/tags/Easegress/" style="font-size: 10px;">Easegress</a> <a href="/cn/tags/ElasticSearch/" style="font-size: 14.09px;">ElasticSearch</a> <a href="/cn/tags/Electron/" style="font-size: 10.45px;">Electron</a> <a href="/cn/tags/English/" style="font-size: 10px;">English</a> <a href="/cn/tags/Excel/" style="font-size: 10px;">Excel</a> <a href="/cn/tags/Express/" style="font-size: 10px;">Express</a> <a href="/cn/tags/FFmpeg/" style="font-size: 10px;">FFmpeg</a> <a href="/cn/tags/FTP/" style="font-size: 10.45px;">FTP</a> <a href="/cn/tags/FaaS/" style="font-size: 10px;">FaaS</a> <a href="/cn/tags/Future/" style="font-size: 10px;">Future</a> <a href="/cn/tags/GC/" style="font-size: 10px;">GC</a> <a href="/cn/tags/GPU/" style="font-size: 10.45px;">GPU</a> <a href="/cn/tags/GRPC/" style="font-size: 10px;">GRPC</a> <a href="/cn/tags/Gin/" style="font-size: 10px;">Gin</a> <a href="/cn/tags/Git/" style="font-size: 13.64px;">Git</a> <a href="/cn/tags/Gitee/" style="font-size: 10px;">Gitee</a> <a href="/cn/tags/Github/" style="font-size: 14.55px;">Github</a> <a href="/cn/tags/Github-Actions/" style="font-size: 10px;">Github-Actions</a> <a href="/cn/tags/Golang/" style="font-size: 18.18px;">Golang</a> <a href="/cn/tags/Gomod/" style="font-size: 10px;">Gomod</a> <a href="/cn/tags/Goroutine/" style="font-size: 10.91px;">Goroutine</a> <a href="/cn/tags/GraalVM/" style="font-size: 10px;">GraalVM</a> <a href="/cn/tags/Gradle/" style="font-size: 10px;">Gradle</a> <a href="/cn/tags/GraphQL/" style="font-size: 10px;">GraphQL</a> <a href="/cn/tags/HAProxy/" style="font-size: 10px;">HAProxy</a> <a href="/cn/tags/Hadoop/" style="font-size: 10px;">Hadoop</a> <a href="/cn/tags/IDEA%E9%85%8D%E7%BD%AE/" style="font-size: 10px;">IDEA配置</a> <a href="/cn/tags/ID%E7%94%9F%E6%88%90%E5%99%A8/" style="font-size: 10.45px;">ID生成器</a> <a href="/cn/tags/IO%E6%A8%A1%E5%9E%8B/" style="font-size: 10px;">IO模型</a> <a href="/cn/tags/Ingress/" style="font-size: 10.45px;">Ingress</a> <a href="/cn/tags/JDK%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/" style="font-size: 10.45px;">JDK动态代理</a> <a href="/cn/tags/JVM/" style="font-size: 10px;">JVM</a> <a href="/cn/tags/Java/" style="font-size: 12.27px;">Java</a> <a href="/cn/tags/JavaWeb/" style="font-size: 10px;">JavaWeb</a> <a href="/cn/tags/Java%E5%9F%BA%E7%A1%80/" style="font-size: 16.82px;">Java基础</a> <a href="/cn/tags/Java%E6%B3%A8%E8%A7%A3/" style="font-size: 10px;">Java注解</a> <a href="/cn/tags/Java%E6%BA%90%E7%A0%81/" style="font-size: 12.27px;">Java源码</a> <a href="/cn/tags/Java%E9%9D%A2%E8%AF%95/" style="font-size: 11.36px;">Java面试</a> <a href="/cn/tags/JuiceFS/" style="font-size: 10px;">JuiceFS</a> <a href="/cn/tags/JupyterLab/" style="font-size: 10px;">JupyterLab</a> <a href="/cn/tags/Kafka/" style="font-size: 10.45px;">Kafka</a> <a href="/cn/tags/Kubernetes/" style="font-size: 15.45px;">Kubernetes</a> <a href="/cn/tags/LVS/" style="font-size: 10.91px;">LVS</a> <a href="/cn/tags/Lambda%E8%A1%A8%E8%BE%BE%E5%BC%8F/" style="font-size: 10.91px;">Lambda表达式</a> <a href="/cn/tags/LevelDB/" style="font-size: 10px;">LevelDB</a> <a href="/cn/tags/Library/" style="font-size: 10.45px;">Library</a> <a href="/cn/tags/Life/" style="font-size: 10px;">Life</a> <a href="/cn/tags/Linux/" style="font-size: 16.36px;">Linux</a> <a href="/cn/tags/LruCache/" style="font-size: 10px;">LruCache</a> <a href="/cn/tags/MacOS/" style="font-size: 10.45px;">MacOS</a> <a href="/cn/tags/Maven/" style="font-size: 12.27px;">Maven</a> <a href="/cn/tags/MongoDB/" style="font-size: 11.82px;">MongoDB</a> <a href="/cn/tags/MySQL/" style="font-size: 13.64px;">MySQL</a> <a href="/cn/tags/Mybatis/" style="font-size: 10.91px;">Mybatis</a> <a href="/cn/tags/NFS/" style="font-size: 10px;">NFS</a> <a href="/cn/tags/NIO/" style="font-size: 10.91px;">NIO</a> <a href="/cn/tags/NPM/" style="font-size: 10px;">NPM</a> <a href="/cn/tags/Namespace/" style="font-size: 10px;">Namespace</a> <a href="/cn/tags/Netty/" style="font-size: 10px;">Netty</a> <a href="/cn/tags/Newman/" style="font-size: 10px;">Newman</a> <a href="/cn/tags/Nginx/" style="font-size: 12.27px;">Nginx</a> <a href="/cn/tags/Node-js/" style="font-size: 11.36px;">Node.js</a> <a href="/cn/tags/Okular/" style="font-size: 10px;">Okular</a> <a href="/cn/tags/P2P/" style="font-size: 10px;">P2P</a> <a href="/cn/tags/POML/" style="font-size: 10px;">POML</a> <a href="/cn/tags/Panic/" style="font-size: 10px;">Panic</a> <a href="/cn/tags/PipelineDB/" style="font-size: 10px;">PipelineDB</a> <a href="/cn/tags/PostgreSQL/" style="font-size: 10.45px;">PostgreSQL</a> <a href="/cn/tags/Postman/" style="font-size: 10.45px;">Postman</a> <a href="/cn/tags/Promise/" style="font-size: 10px;">Promise</a> <a href="/cn/tags/Protobuf/" style="font-size: 10.91px;">Protobuf</a> <a href="/cn/tags/Python/" style="font-size: 11.36px;">Python</a> <a href="/cn/tags/RAII/" style="font-size: 10px;">RAII</a> <a href="/cn/tags/RPC/" style="font-size: 10px;">RPC</a> <a href="/cn/tags/RSS/" style="font-size: 10.91px;">RSS</a> <a href="/cn/tags/React/" style="font-size: 10px;">React</a> <a href="/cn/tags/Redash/" style="font-size: 10px;">Redash</a> <a href="/cn/tags/Redis/" style="font-size: 14.55px;">Redis</a> <a href="/cn/tags/Ruby/" style="font-size: 10px;">Ruby</a> <a href="/cn/tags/Rust/" style="font-size: 18.64px;">Rust</a> <a href="/cn/tags/SPA/" style="font-size: 10px;">SPA</a> <a href="/cn/tags/SQLite/" style="font-size: 10px;">SQLite</a> <a href="/cn/tags/SSE/" style="font-size: 10px;">SSE</a> <a href="/cn/tags/SSH/" style="font-size: 10.45px;">SSH</a> <a href="/cn/tags/Serverless/" style="font-size: 10px;">Serverless</a> <a href="/cn/tags/Shadowsocks/" style="font-size: 10.91px;">Shadowsocks</a> <a href="/cn/tags/Skiplist/" style="font-size: 10px;">Skiplist</a> <a href="/cn/tags/Slice/" style="font-size: 10px;">Slice</a> <a href="/cn/tags/Socket/" style="font-size: 10px;">Socket</a> <a href="/cn/tags/Spring/" style="font-size: 11.82px;">Spring</a> <a href="/cn/tags/Spring-Boot/" style="font-size: 10px;">Spring Boot</a> <a href="/cn/tags/Spring%E6%BA%90%E7%A0%81/" style="font-size: 10px;">Spring源码</a> <a href="/cn/tags/String/" style="font-size: 10px;">String</a> <a href="/cn/tags/Swagger/" style="font-size: 10px;">Swagger</a> <a href="/cn/tags/TOML/" style="font-size: 10px;">TOML</a> <a href="/cn/tags/Telegraf/" style="font-size: 10px;">Telegraf</a> <a href="/cn/tags/Telegram/" style="font-size: 10px;">Telegram</a> <a href="/cn/tags/Tomcat/" style="font-size: 10.45px;">Tomcat</a> <a href="/cn/tags/TypeScript/" style="font-size: 10px;">TypeScript</a> <a href="/cn/tags/Typora/" style="font-size: 10px;">Typora</a> <a href="/cn/tags/UUID/" style="font-size: 10px;">UUID</a> <a href="/cn/tags/UnionFS/" style="font-size: 10px;">UnionFS</a> <a href="/cn/tags/VMWare/" style="font-size: 13.18px;">VMWare</a> <a href="/cn/tags/VPN/" style="font-size: 10px;">VPN</a> <a href="/cn/tags/WebAssembly/" style="font-size: 10.45px;">WebAssembly</a> <a href="/cn/tags/Websocket/" style="font-size: 10px;">Websocket</a> <a href="/cn/tags/XML/" style="font-size: 10.91px;">XML</a> <a href="/cn/tags/YAML/" style="font-size: 10px;">YAML</a> <a href="/cn/tags/Zookeeper/" style="font-size: 10.91px;">Zookeeper</a> <a href="/cn/tags/apt/" style="font-size: 10px;">apt</a> <a href="/cn/tags/autok3s/" style="font-size: 10px;">autok3s</a> <a href="/cn/tags/cURL/" style="font-size: 10px;">cURL</a> <a href="/cn/tags/chroot/" style="font-size: 10px;">chroot</a> <a href="/cn/tags/cmder/" style="font-size: 10px;">cmder</a> <a href="/cn/tags/grpc/" style="font-size: 10px;">grpc</a> <a href="/cn/tags/hash%E5%86%B2%E7%AA%81/" style="font-size: 10px;">hash冲突</a> <a href="/cn/tags/inoreader/" style="font-size: 10px;">inoreader</a> <a href="/cn/tags/k3s/" style="font-size: 10.45px;">k3s</a> <a href="/cn/tags/kafka/" style="font-size: 10px;">kafka</a> <a href="/cn/tags/keepalived/" style="font-size: 10px;">keepalived</a> <a href="/cn/tags/libp2p/" style="font-size: 10px;">libp2p</a> <a href="/cn/tags/minikube/" style="font-size: 10.45px;">minikube</a> <a href="/cn/tags/ntfy/" style="font-size: 10px;">ntfy</a> <a href="/cn/tags/picocli/" style="font-size: 10px;">picocli</a> <a href="/cn/tags/telnet/" style="font-size: 10px;">telnet</a> <a href="/cn/tags/uv/" style="font-size: 10px;">uv</a> <a href="/cn/tags/vcpkg/" style="font-size: 10px;">vcpkg</a> <a href="/cn/tags/xorm/" style="font-size: 10px;">xorm</a> <a href="/cn/tags/%E4%BA%8C%E5%88%86%E6%B3%95/" style="font-size: 10px;">二分法</a> <a href="/cn/tags/%E4%BA%8C%E5%8F%89%E6%A0%91/" style="font-size: 15.45px;">二叉树</a> <a href="/cn/tags/%E4%BA%8C%E7%BB%B4%E7%A0%81/" style="font-size: 10px;">二维码</a> <a href="/cn/tags/%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91/" style="font-size: 10px;">交叉编译</a> <a href="/cn/tags/%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD/" style="font-size: 10.91px;">人工智能</a> <a href="/cn/tags/%E4%BA%BA%E7%94%9F%E6%97%A5%E8%AE%B0/" style="font-size: 17.73px;">人生日记</a> <a href="/cn/tags/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">代理模式</a> <a href="/cn/tags/%E4%BD%8D%E8%BF%90%E7%AE%97/" style="font-size: 10.45px;">位运算</a> <a href="/cn/tags/%E4%BF%A1%E5%8F%B7/" style="font-size: 10px;">信号</a> <a href="/cn/tags/%E4%BF%A1%E6%81%AF%E8%81%9A%E5%90%88/" style="font-size: 10px;">信息聚合</a> <a href="/cn/tags/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" style="font-size: 10.45px;">内存管理</a> <a href="/cn/tags/%E5%86%85%E7%BD%91%E7%A9%BF%E9%80%8F/" style="font-size: 10px;">内网穿透</a> <a href="/cn/tags/%E5%87%BD%E6%95%B0%E5%BC%8F%E6%8E%A5%E5%8F%A3/" style="font-size: 10px;">函数式接口</a> <a href="/cn/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" style="font-size: 15.91px;">分布式</a> <a href="/cn/tags/%E5%8A%9E%E5%85%AC/" style="font-size: 10px;">办公</a> <a href="/cn/tags/%E5%8A%A8%E6%80%81%E8%A7%84%E5%88%92/" style="font-size: 11.36px;">动态规划</a> <a href="/cn/tags/%E5%8D%8F%E7%A8%8B%E6%B1%A0/" style="font-size: 10px;">协程池</a> <a href="/cn/tags/%E5%8D%9A%E5%AE%A2%E7%AE%A1%E7%90%86/" style="font-size: 13.18px;">博客管理</a> <a href="/cn/tags/%E5%8D%9A%E5%AE%A2%E7%BE%8E%E5%8C%96/" style="font-size: 11.82px;">博客美化</a> <a href="/cn/tags/%E5%8F%8C%E6%8C%87%E9%92%88/" style="font-size: 10.45px;">双指针</a> <a href="/cn/tags/%E5%8F%8D%E5%B0%84/" style="font-size: 12.27px;">反射</a> <a href="/cn/tags/%E5%8F%A3%E6%89%8D/" style="font-size: 10.45px;">口才</a> <a href="/cn/tags/%E5%93%88%E5%B8%8C%E8%A1%A8/" style="font-size: 10.45px;">哈希表</a> <a href="/cn/tags/%E5%9B%9E%E6%BA%AF/" style="font-size: 10.45px;">回溯</a> <a href="/cn/tags/%E5%9B%9E%E6%BA%AF%E6%B3%95/" style="font-size: 10px;">回溯法</a> <a href="/cn/tags/%E5%A0%86/" style="font-size: 10.45px;">堆</a> <a href="/cn/tags/%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8B%E8%BD%BD/" style="font-size: 10.45px;">多线程下载</a> <a href="/cn/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE/" style="font-size: 10px;">大数据</a> <a href="/cn/tags/%E5%AD%97%E7%AC%A6%E4%B8%B2/" style="font-size: 13.18px;">字符串</a> <a href="/cn/tags/%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%A4%84%E7%90%86/" style="font-size: 10px;">字符串处理</a> <a href="/cn/tags/%E5%AD%A6%E4%B9%A0%E6%A1%88%E4%BE%8B/" style="font-size: 10.45px;">学习案例</a> <a href="/cn/tags/%E5%AE%B9%E5%99%A8/" style="font-size: 10px;">容器</a> <a href="/cn/tags/%E5%B7%A5%E5%85%B7%E5%88%86%E4%BA%AB/" style="font-size: 19.09px;">工具分享</a> <a href="/cn/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" style="font-size: 15.45px;">并发编程</a> <a href="/cn/tags/%E5%B9%B6%E8%A1%8C%E8%AE%A1%E7%AE%97/" style="font-size: 10.45px;">并行计算</a> <a href="/cn/tags/%E5%BA%8F%E5%88%97%E5%8C%96/" style="font-size: 10px;">序列化</a> <a href="/cn/tags/%E5%BB%BA%E7%AD%91/" style="font-size: 10px;">建筑</a> <a href="/cn/tags/%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83/" style="font-size: 10.45px;">开发规范</a> <a href="/cn/tags/%E5%BC%80%E6%BA%90%E5%8D%8F%E8%AE%AE/" style="font-size: 10px;">开源协议</a> <a href="/cn/tags/%E6%80%A7%E8%83%BD%E6%8C%87%E6%A0%87/" style="font-size: 10px;">性能指标</a> <a href="/cn/tags/%E6%8A%80%E6%9C%AF%E6%9D%82%E8%B0%88/" style="font-size: 20px;">技术杂谈</a> <a href="/cn/tags/%E6%8E%92%E5%BA%8F/" style="font-size: 11.82px;">排序</a> <a href="/cn/tags/%E6%8E%A8%E9%80%81/" style="font-size: 10px;">推送</a> <a href="/cn/tags/%E6%90%9C%E7%B4%A2/" style="font-size: 10px;">搜索</a> <a href="/cn/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" style="font-size: 10.91px;">操作系统</a> <a href="/cn/tags/%E6%95%99%E5%B8%88/" style="font-size: 10.45px;">教师</a> <a href="/cn/tags/%E6%95%99%E6%A1%88/" style="font-size: 10.45px;">教案</a> <a href="/cn/tags/%E6%95%B0%E5%AD%A6/" style="font-size: 12.73px;">数学</a> <a href="/cn/tags/%E6%95%B0%E6%8D%AE%E5%BA%93/" style="font-size: 15px;">数据库</a> <a href="/cn/tags/%E6%95%B0%E7%BB%84/" style="font-size: 13.64px;">数组</a> <a href="/cn/tags/%E6%96%87%E5%AD%97%E9%9A%90%E8%97%8F/" style="font-size: 10px;">文字隐藏</a> <a href="/cn/tags/%E6%96%AD%E7%82%B9%E7%BB%AD%E4%BC%A0/" style="font-size: 10px;">断点续传</a> <a href="/cn/tags/%E6%96%B0%E6%B5%AA%E5%BE%AE%E5%8D%9A/" style="font-size: 10px;">新浪微博</a> <a href="/cn/tags/%E6%97%A5%E5%BF%97/" style="font-size: 10px;">日志</a> <a href="/cn/tags/%E6%97%A5%E6%9C%AC%E8%AA%9E/" style="font-size: 14.55px;">日本語</a> <a href="/cn/tags/%E6%97%A5%E8%A8%98/" style="font-size: 10.45px;">日記</a> <a href="/cn/tags/%E6%9C%8D%E5%8A%A1%E8%87%AA%E5%BB%BA/" style="font-size: 10.91px;">服务自建</a> <a href="/cn/tags/%E6%9F%A5%E6%89%BE/" style="font-size: 10.91px;">查找</a> <a href="/cn/tags/%E6%A0%88/" style="font-size: 10.91px;">栈</a> <a href="/cn/tags/%E6%AD%8C%E8%A9%9E/" style="font-size: 10px;">歌詞</a> <a href="/cn/tags/%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F/" style="font-size: 10.91px;">正则表达式</a> <a href="/cn/tags/%E6%B1%87%E7%BC%96%E8%AF%AD%E8%A8%80/" style="font-size: 10px;">汇编语言</a> <a href="/cn/tags/%E6%B5%8B%E8%AF%95/" style="font-size: 10px;">测试</a> <a href="/cn/tags/%E6%BB%91%E7%AA%97/" style="font-size: 10px;">滑窗</a> <a href="/cn/tags/%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6/" style="font-size: 10px;">版本控制</a> <a href="/cn/tags/%E7%94%9F%E6%B4%BB%E6%80%BB%E7%BB%93/" style="font-size: 10px;">生活总结</a> <a href="/cn/tags/%E7%A6%8F%E5%88%A9%E5%88%86%E4%BA%AB/" style="font-size: 10px;">福利分享</a> <a href="/cn/tags/%E7%AE%97%E6%B3%95/" style="font-size: 12.73px;">算法</a> <a href="/cn/tags/%E7%AE%97%E6%B3%95%E9%A2%98%E7%9B%AE/" style="font-size: 19.55px;">算法题目</a> <a href="/cn/tags/%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/" style="font-size: 10.45px;">类加载器</a> <a href="/cn/tags/%E7%B4%A0%E6%95%B0/" style="font-size: 10px;">素数</a> <a href="/cn/tags/%E7%BA%BF%E6%80%A7%E6%8E%A2%E6%B5%8B%E6%B3%95/" style="font-size: 10px;">线性探测法</a> <a href="/cn/tags/%E7%BA%BF%E7%A8%8B%E6%B1%A0/" style="font-size: 10.91px;">线程池</a> <a href="/cn/tags/%E7%BC%96%E8%AF%91%E4%BC%98%E5%8C%96/" style="font-size: 10px;">编译优化</a> <a href="/cn/tags/%E7%BC%96%E8%AF%91%E5%99%A8/" style="font-size: 10px;">编译器</a> <a href="/cn/tags/%E7%BD%91%E7%9B%98/" style="font-size: 10px;">网盘</a> <a href="/cn/tags/%E7%BD%91%E7%BB%9C%E7%BA%BF%E8%B7%AF/" style="font-size: 10px;">网络线路</a> <a href="/cn/tags/%E7%BF%BB%E8%A8%B3/" style="font-size: 10.45px;">翻訳</a> <a href="/cn/tags/%E8%87%AA%E5%90%AF%E5%8A%A8/" style="font-size: 10px;">自启动</a> <a href="/cn/tags/%E8%92%99%E7%89%B9%E5%8D%A1%E7%BD%97%E6%96%B9%E6%B3%95/" style="font-size: 10px;">蒙特卡罗方法</a> <a href="/cn/tags/%E8%99%9A%E6%8B%9F%E6%9C%BA/" style="font-size: 10.45px;">虚拟机</a> <a href="/cn/tags/%E8%A1%97%E6%99%AF/" style="font-size: 10px;">街景</a> <a href="/cn/tags/%E8%A3%85%E9%A5%B0%E5%99%A8%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">装饰器模式</a> <a href="/cn/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" style="font-size: 10px;">计算机网络</a> <a href="/cn/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" style="font-size: 10px;">设计模式</a> <a href="/cn/tags/%E8%AF%BE%E7%A8%8B/" style="font-size: 10.45px;">课程</a> <a href="/cn/tags/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/" style="font-size: 12.27px;">负载均衡</a> <a href="/cn/tags/%E8%B4%AA%E5%BF%83/" style="font-size: 10px;">贪心</a> <a href="/cn/tags/%E8%B7%B3%E8%B7%B3%E8%9B%99%E6%97%A5%E8%AF%AD%E8%AF%BB%E5%BA%93/" style="font-size: 10.45px;">跳跳蛙日语读库</a> <a href="/cn/tags/%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE/" style="font-size: 17.27px;">软件安装与配置</a> <a href="/cn/tags/%E8%BD%AF%E4%BB%B6%E6%8E%A8%E8%8D%90/" style="font-size: 15px;">软件推荐</a> <a href="/cn/tags/%E8%BD%AF%E4%BB%B6%E6%B5%8B%E8%AF%95/" style="font-size: 10.45px;">软件测试</a> <a href="/cn/tags/%E8%BD%AF%E8%80%83/" style="font-size: 10px;">软考</a> <a href="/cn/tags/%E8%BF%9B%E5%BA%A6%E6%9D%A1/" style="font-size: 10.45px;">进度条</a> <a href="/cn/tags/%E8%BF%9B%E7%A8%8B%E9%80%9A%E4%BF%A1/" style="font-size: 10px;">进程通信</a> <a href="/cn/tags/%E9%80%86%E5%90%91%E5%B7%A5%E7%A8%8B/" style="font-size: 10px;">逆向工程</a> <a href="/cn/tags/%E9%80%92%E5%BD%92/" style="font-size: 10.45px;">递归</a> <a href="/cn/tags/%E9%87%8D%E5%AE%9A%E5%90%91/" style="font-size: 10px;">重定向</a> <a href="/cn/tags/%E9%87%8D%E8%A3%85%E7%B3%BB%E7%BB%9F/" style="font-size: 10px;">重装系统</a> <a href="/cn/tags/%E9%93%BE%E8%A1%A8/" style="font-size: 13.64px;">链表</a> <a href="/cn/tags/%E9%98%9F%E5%88%97/" style="font-size: 10px;">队列</a> <a href="/cn/tags/%E9%9A%8F%E6%9C%BA%E5%9B%BE%E7%89%87/" style="font-size: 10px;">随机图片</a> <a href="/cn/tags/%E9%9B%86%E5%90%88/" style="font-size: 14.09px;">集合</a> <a href="/cn/tags/%E9%9B%B6%E5%AE%BD%E5%AD%97%E7%AC%A6/" style="font-size: 10px;">零宽字符</a> <a href="/cn/tags/%E9%9D%99%E6%80%81%E4%BB%A3%E7%90%86/" style="font-size: 10px;">静态代理</a> <a href="/cn/tags/%E9%9D%A2%E8%AF%95%E6%80%BB%E7%BB%93/" style="font-size: 15px;">面试总结</a> <a href="/cn/tags/%E9%A1%B9%E7%9B%AE%E6%80%BB%E7%BB%93/" style="font-size: 10.91px;">项目总结</a> <a href="/cn/tags/%E9%A1%B9%E7%9B%AE%E6%9E%84%E5%BB%BA/" style="font-size: 10.91px;">项目构建</a> <a href="/cn/tags/%E9%A1%B9%E7%9B%AE%E9%83%A8%E7%BD%B2/" style="font-size: 11.36px;">项目部署</a> <a href="/cn/tags/%E9%BB%91%E8%8B%B9%E6%9E%9C/" style="font-size: 10px;">黑苹果</a>
+    </div>
+    
+  </div>
+
+  
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">文章分类</h3>
+    <div class="nexmoe-widget">
+
+      <ul class="category-list">
+
+        
+
+
+        
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/ACM/">ACM</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Android/">Android</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/C/">C++</a>
+          <span class="category-list-count">16</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/CUDA/">CUDA</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Chrome扩展/">Chrome扩展</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/ClickHouse/">ClickHouse</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Docker/">Docker</a>
+          <span class="category-list-count">25</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Dolt/">Dolt</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Dubbo/">Dubbo</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/ElasticSearch/">ElasticSearch</a>
+          <span class="category-list-count">8</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Electron/">Electron</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Git/">Git</a>
+          <span class="category-list-count">6</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Github/">Github</a>
+          <span class="category-list-count">5</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Golang/">Golang</a>
+          <span class="category-list-count">31</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/GraalVM/">GraalVM</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/IO基础/">IO基础</a>
+          <span class="category-list-count">4</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Java/">Java</a>
+          <span class="category-list-count">4</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Java源码/">Java源码</a>
+          <span class="category-list-count">16</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/JuiceFS/">JuiceFS</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Kubernetes/">Kubernetes</a>
+          <span class="category-list-count">12</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Life/">Life</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Linux/">Linux</a>
+          <span class="category-list-count">16</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Maven/">Maven</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/MongoDB/">MongoDB</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/MySQL/">MySQL</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Mybatis/">Mybatis</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/NPM/">NPM</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Netty/">Netty</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Nginx/">Nginx</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Node-js/">Node.js</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/PostgreSQL/">PostgreSQL</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Protobuf/">Protobuf</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Python/">Python</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Redash/">Redash</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Redis/">Redis</a>
+          <span class="category-list-count">6</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Ruby/">Ruby</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Rust/">Rust</a>
+          <span class="category-list-count">35</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Spring/">Spring</a>
+          <span class="category-list-count">5</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/TOML/">TOML</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/TypeScript/">TypeScript</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/Websocket/">Websocket</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/人工智能/">人工智能</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/人生日记/">人生日记</a>
+          <span class="category-list-count">27</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/分布式/">分布式</a>
+          <span class="category-list-count">10</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/办公/">办公</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/博客管理/">博客管理</a>
+          <span class="category-list-count">6</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/学习案例/">学习案例</a>
+          <span class="category-list-count">6</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/工具分享/">工具分享</a>
+          <span class="category-list-count">41</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/并发编程/">并发编程</a>
+          <span class="category-list-count">13</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/技术杂谈/">技术杂谈</a>
+          <span class="category-list-count">59</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/教师/">教师</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/数据库/">数据库</a>
+          <span class="category-list-count">8</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/日本語/">日本語</a>
+          <span class="category-list-count">11</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/服务自建/">服务自建</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/汇编语言/">汇编语言</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/算法/">算法</a>
+          <span class="category-list-count">5</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/算法题目/">算法题目</a>
+          <span class="category-list-count">60</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/课程/">课程</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/软件安装与配置/">软件安装与配置</a>
+          <span class="category-list-count">20</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/软件测试/">软件测试</a>
+          <span class="category-list-count">2</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/软考/">软考</a>
+          <span class="category-list-count">1</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/面试总结/">面试总结</a>
+          <span class="category-list-count">15</span>
+        </li>
+
+        
+
+        <li class="category-list-item">
+          <a class="category-list-link" href="/cn/categories/项目总结/">项目总结</a>
+          <span class="category-list-count">3</span>
+        </li>
+
+        
+      </ul>
+
+    </div>
+  </div>
+
+
+  
+  
+  <div class="nexmoe-widget-wrap">
+    <h3 class="nexmoe-widget-title">最新文章</h3>
+    <div class="nexmoe-widget">
+      <ul>
+        
+          <li>
+            <a href="/cn/2026/02/13/%E7%BD%97%E6%B0%B8%E6%B5%A915%E5%A0%82%E6%BC%94%E8%AE%B2%E7%A7%81%E6%95%99%E8%AF%BE%E6%80%BB%E7%BB%93/">罗永浩15堂演讲私教课总结</a>
+          </li>
+        
+          <li>
+            <a href="/cn/2026/02/10/%E5%86%8D%E8%A7%812025%EF%BC%8C%E4%BD%A0%E5%A5%BD2026%EF%BC%81/">再见2025，你好2026！</a>
+          </li>
+        
+          <li>
+            <a href="/cn/2025/08/20/%E4%B8%8B%E4%B8%80%E4%BB%A3%E6%8F%90%E7%A4%BA%E8%AF%8D%E5%B7%A5%E7%A8%8B%E8%AF%AD%E8%A8%80POML%E7%AE%80%E6%98%8E%E6%95%99%E7%A8%8B/">下一代提示词工程语言POML简明教程</a>
+          </li>
+        
+          <li>
+            <a href="/cn/2025/07/30/%E5%BC%80%E4%BA%86%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E4%B8%93%E9%97%A8%E5%AD%A6%E4%B9%A0%E6%97%A5%E8%AF%AD%E7%9A%84%E5%8D%9A%E5%AE%A2/">开了一个新的专门学习日语的博客</a>
+          </li>
+        
+          <li>
+            <a href="/cn/2025/07/30/%E4%BA%8C%E3%80%81%E6%80%A7%E8%83%BD%E6%A8%A1%E5%9E%8B%E4%B8%8E%E9%80%90%E5%85%83%E7%B4%A0%E4%BC%98%E5%8C%96/">二、性能模型与逐元素优化</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+    <div class="nexmoe-copyright">
+        <span style="color:#707070;font-size: 14px;">
+            本站总访问量<span id="busuanzi_value_site_pv"></span>次 <br />
+            本站访客数<span id="busuanzi_value_site_uv"></span>人次 <br />
+        </span>
+        <span id="showsectime" style="color:#707070;font-size: 14px;">
+            本站已运行0天0小时0分0秒
+        </span>
+        <i class="fa fa-heart throb" style="color:#d43f57">❤</i><br />
+
+        &copy; 2026 Jasonkay
+        Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+        & <a href="https://nexmoe.com/hexo-theme-nexmoe.html" target="_blank">Nexmoe</a>
+    </div>
+
+    <div id="footer-info">
+
+    </div>
+
+    <script type="text/javascript">
+        function NewDate(str) {
+            str = str.split('-');
+            var date = new Date();
+            date.setUTCFullYear(str[0], str[1] - 1, str[2]);
+            date.setUTCHours(0, 0, 0, 0);
+            return date;
+        }
+        function showsectime() {
+            var birthDay = NewDate("2019-09-01");
+            var today = new Date();
+            var timeold = today.getTime() - birthDay.getTime();
+            var sectimeold = timeold / 1000
+            var secondsold = Math.floor(sectimeold);
+            var msPerDay = 24 * 60 * 60 * 1000; var e_daysold = timeold / msPerDay;
+            var daysold = Math.floor(e_daysold);
+            var e_hrsold = (daysold - e_daysold) * -24;
+            var hrsold = Math.floor(e_hrsold);
+            var e_minsold = (hrsold - e_hrsold) * -60;
+            var minsold = Math.floor((hrsold - e_hrsold) * -60); var seconds = Math.floor((minsold - e_minsold) * -60).toString();
+            document.getElementById("showsectime").innerHTML = "本站已运行" + daysold + "天" + hrsold + "小时" + minsold + "分" + seconds + "秒";
+            setTimeout(showsectime, 1000);
+        }
+        showsectime();
+    </script>
+
+</div><!-- .nexmoe-drawer -->
+  </div>
+  <div id="nexmoe-content">
+    <div class="nexmoe-primary">
+      <div class="nexmoe-post">
+  <div class="nexmoe-post-cover">
+    
+    <img src="https://img.paulzzh.com/touhou/random?55">
+    
+    <h1>控制Goroutine数量的方法</h1>
+  </div>
+  <div class="nexmoe-post-meta">
+    <a><i class="nexmoefont icon-calendar-fill"></i>2021年10月22日</a>
+    <a><i class="nexmoefont icon-areachart"></i>3.9k 字</a>
+    <a><i class="nexmoefont icon-areachart"></i><span class="archive-article-date">阅读量<span
+          id="busuanzi_value_page_pv"></span>
+      </span></a>
+    <a><i class="nexmoefont icon-time-circle-fill"></i>大概 19 分钟</a>
+
+    
+    <a class="nexmoefont icon-appstore-fill -link" href="/cn/categories/Golang/">Golang</a>
+    
+    
+    <a class="nexmoefont icon-tag-fill -none-link" href="/cn/tags/Golang/" rel="tag">Golang</a> <a class="nexmoefont icon-tag-fill -none-link" href="/cn/tags/Goroutine/" rel="tag">Goroutine</a> <a class="nexmoefont icon-tag-fill -none-link" href="/cn/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" rel="tag">并发编程</a>
+    
+  </div>
+  <article>
+    
+    <div id="toc" class="toc-article">
+      <ul class="markdownIt-TOC">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%8E%A7%E5%88%B6Goroutine%E6%95%B0%E9%87%8F%E7%9A%84%E6%96%B9%E6%B3%95"><span class="toc-text">控制Goroutine数量的方法</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E8%A8%80"><span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BB%BB%E5%8A%A1%E6%8A%BD%E8%B1%A1"><span class="toc-text">任务抽象</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%97%A0%E9%99%90Goroutine%EF%BC%9F"><span class="toc-text">无限Goroutine？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8Go%E5%8E%9F%E7%94%9F%E6%96%B9%E5%BC%8F%E6%8E%A7%E5%88%B6Goroutine%E6%95%B0%E9%87%8F"><span class="toc-text">使用Go原生方式控制Goroutine数量</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8Channel%E8%BF%9B%E8%A1%8C%E9%99%90%E5%88%B6"><span class="toc-text">使用Channel进行限制</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8semaphore%E8%BF%9B%E8%A1%8C%E9%99%90%E5%88%B6"><span class="toc-text">使用semaphore进行限制</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B0%8F%E7%BB%93"><span class="toc-text">小结</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E5%BC%80%E6%BA%90%E7%9A%84%E5%8D%8F%E7%A8%8B%E6%B1%A0%E5%BA%93"><span class="toc-text">使用开源的协程池库</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#panjf2000-ants"><span class="toc-text">panjf2000&#x2F;ants</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E2%91%A0-%E4%BD%BF%E7%94%A8Submit"><span class="toc-text">① 使用Submit</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E2%91%A1-%E4%BD%BF%E7%94%A8Invoke"><span class="toc-text">② 使用Invoke</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#go-playground-pool"><span class="toc-text">go-playground&#x2F;pool</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Jeffail-tunny"><span class="toc-text">Jeffail&#x2F;tunny</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95"><span class="toc-text">附录</span></a></li></ol>
+      </ul>
+    </div>
+    
+    <p>在我们写代码的时候，经常会有批量创建任务并等待返回的场景；此时使用生产消费者并发的提交任务来代替for循环逐个执行任务能够大大提高代码效率；</p>
+<p>然而不加限制的创建Goroutine也是会有内存溢出、CPU切换过多等资源浪费的情况；</p>
+<p>本文讲述了Go中一些常用的控制Goroutine数量的方法；</p>
+<p>源代码：</p>
+<ul>
+<li><a href="https://github.com/JasonkayZK/Go_Learn/tree/goroutine-limit">https://github.com/JasonkayZK/Go_Learn/tree/goroutine-limit</a></li>
+</ul>
+<br/>
+
+<span id="more"></span>
+
+<h1 id="控制Goroutine数量的方法"><a href="#控制Goroutine数量的方法" class="headerlink" title="控制Goroutine数量的方法"></a><strong>控制Goroutine数量的方法</strong></h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a><strong>前言</strong></h2><p>Go 语言中创建协程（Goroutine）的成本非常低，因此稍不注意就可能创建出大量的协程，一方面会造成资源的浪费，另一方面不容易控制这些协程的状态；</p>
+<p>本文讲述了Go中一些常用的控制Goroutine数量的方法，主要包括：</p>
+<ul>
+<li>无限Goroutine</li>
+<li>使用Go原生方式控制Goroutine数量：Channel &amp; WaitGroup</li>
+<li>使用Semaphore控制Goroutine数量；</li>
+<li>开源协程池：<ul>
+<li>Ants: <a href="https://github.com/panjf2000/ants">https://github.com/panjf2000/ants</a></li>
+<li>Go-Playground: <a href="https://github.com/go-playground/pool">https://github.com/go-playground/pool</a></li>
+<li>Tunny: <a href="https://github.com/Jeffail/tunny">https://github.com/Jeffail/tunny</a></li>
+</ul>
+</li>
+</ul>
+<br/>
+
+<h2 id="任务抽象"><a href="#任务抽象" class="headerlink" title="任务抽象"></a><strong>任务抽象</strong></h2><p>在进行实验之前，简单说一下我们要进行的任务：</p>
+<p>我们的任务就是将一个字符串数组中的所有字符串都加上一个<code>prefix</code>，并生成新的数组；</p>
+<p>任务的代码示例如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">job</span><span class="params">(str <span class="type">string</span>, jobIdx <span class="type">int</span>, res *[]<span class="type">string</span>)</span></span> &#123;</span><br><span class="line">   fmt.Printf(<span class="string">&quot;str: %s, jobIdx: %d\n&quot;</span>, str, jobIdx)</span><br><span class="line">   (*res)[jobIdx] = prefix + str</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>很容易想到我们可以采用for循环的方式：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">arr := generateJobArr(jobNum)</span><br><span class="line">res := <span class="built_in">make</span>([]<span class="type">string</span>, <span class="built_in">len</span>(arr))</span><br><span class="line"><span class="keyword">for</span> idx, s := <span class="keyword">range</span> arr &#123;</span><br><span class="line">    job(s, idx, &amp;res)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>  <font color="#f00"><strong>注意到，这里是将结果数组和对应的idx传入，而非使用<code>append</code>向<code>res</code>中追加元素，后面会介绍这样做的好处！</strong></font></p>
+</blockquote>
+<p>但是这样效率太低，不能有效地利用我们多核心CPU的优势；</p>
+<p>因此我们想到了使用并发的方式去提交任务，让我们的程序并发的去执行！</p>
+<br/>
+
+<h2 id="无限Goroutine？"><a href="#无限Goroutine？" class="headerlink" title="无限Goroutine？"></a><strong>无限Goroutine？</strong></h2><p>既然Go中创建协程的成本那么低，我们能否为每一个任务都创建一个Goroutine去执行呢？</p>
+<p>如果任务不多的情况下，我们是可以这么做的！</p>
+<p>代码如下：</p>
+<p>0-no-limit-demo/no_limit.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	prefix = <span class="string">`hello: `</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	jobNum = <span class="number">100000</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Fatal Err!</span></span><br><span class="line">	<span class="comment">//jobNum = 1000000000</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	arr := generateJobArr(jobNum)</span><br><span class="line"></span><br><span class="line">	wg := sync.WaitGroup&#123;&#125;</span><br><span class="line">	res := <span class="built_in">make</span>([]<span class="type">string</span>, <span class="built_in">len</span>(arr))</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> idx, s := <span class="keyword">range</span> arr &#123;</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> job(s, idx, &amp;res, &amp;wg)</span><br><span class="line">		fmt.Printf(<span class="string">&quot;index: %d, goroutine Num: %d \n&quot;</span>, idx, runtime.NumGoroutine())</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> idx, re := <span class="keyword">range</span> res &#123;</span><br><span class="line">		<span class="keyword">if</span> re != prefix+arr[idx] &#123;</span><br><span class="line">			<span class="built_in">panic</span>(fmt.Sprintf(<span class="string">&quot;not equal: re: %s, arr[%d]: %s&quot;</span>, re, idx, arr[idx]))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 任务内容</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">job</span><span class="params">(str <span class="type">string</span>, jobIdx <span class="type">int</span>, res *[]<span class="type">string</span>, wg *sync.WaitGroup)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> wg.Done()</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">&quot;str: %s, jobIdx: %d\n&quot;</span>, str, jobIdx)</span><br><span class="line">	(*res)[jobIdx] = prefix + str</span><br><span class="line"></span><br><span class="line">	time.Sleep(time.Second * <span class="number">5</span>) <span class="comment">// 睡眠5s，模拟耗时</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 初始化测试数据</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">generateJobArr</span><span class="params">(jobNum <span class="type">int</span>)</span></span> []<span class="type">string</span> &#123;</span><br><span class="line">	arr := <span class="built_in">make</span>([]<span class="type">string</span>, <span class="number">0</span>)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">1</span>; i &lt; jobNum+<span class="number">1</span>; i++ &#123;</span><br><span class="line">		arr = <span class="built_in">append</span>(arr, strconv.Itoa(i))</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> arr</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用WaitGroup来等待所有协程的完成；</p>
+<p>这里就可以看到<strong>将结果数组和对应的idx传入，而非使用<code>append</code>向<code>res</code>中追加元素</strong>的好处：</p>
+<ul>
+<li>由于Go中的Append函数是非线程安全的，如果我们在多个线程中同时向<code>res</code>数组中Append，大概率会导致缺少很多元素；而为了避免这种情况，我们需要使用锁来限制对数组资源的获取，使得效率降低；</li>
+</ul>
+<p>有兴趣的可以执行下面的代码试试：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	size := <span class="number">10000</span></span><br><span class="line"></span><br><span class="line">	res := <span class="built_in">make</span>([]<span class="type">int</span>, <span class="number">0</span>)</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; size; i++ &#123;</span><br><span class="line">		jobI := i <span class="comment">// Copy Value to avoid copy pointer in goroutine function!</span></span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			res = <span class="built_in">append</span>(res, jobI)</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">&quot;size equal: %t, size: %d&quot;</span>, <span class="built_in">len</span>(res) == size, <span class="built_in">len</span>(res))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><font color="#f00"><strong>注1：我们需要将<code>i</code>的值Copy一份到jobI中，否则在<code>go func</code>中获取到的是变量<code>i</code>的指针，造成大量的数据重复！</strong></font></p>
+<p><font color="#f00"><strong>注2：上面的代码极大概率输出<code>false</code>，因为大量的Gouroutine使用Append向res数组写入，造成并发竞争问题；</strong></font></p>
+<p><font color="#f00"><strong>注3：代码会在任务未完全结束时就退出；</strong></font></p>
+<p>将代码稍作修改加上锁即可避免：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	size := <span class="number">10000</span></span><br><span class="line"></span><br><span class="line">	res := <span class="built_in">make</span>([]<span class="type">int</span>, <span class="number">0</span>)</span><br><span class="line">	wg, lock := sync.WaitGroup&#123;&#125;, sync.Mutex&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; size; i++ &#123;</span><br><span class="line">		jobI := i <span class="comment">// Copy Value to avoid copy pointer in goroutine function!</span></span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> wg.Done()</span><br><span class="line">			lock.Lock()</span><br><span class="line">			<span class="keyword">defer</span> lock.Unlock()</span><br><span class="line">			res = <span class="built_in">append</span>(res, jobI)</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">&quot;size equal: %t, size: %d&quot;</span>, <span class="built_in">len</span>(res) == size, <span class="built_in">len</span>(res))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>加入Lock，保证仅有一个协程修改<code>res</code>，并且加入WaitGroup保证所有任务执行完毕后才退出；</p>
+<p>而使用Index直接修改<code>res</code>可以不需要加锁：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	size := <span class="number">10000</span></span><br><span class="line"></span><br><span class="line">	res := <span class="built_in">make</span>([]<span class="type">int</span>, size)</span><br><span class="line">	wg := sync.WaitGroup&#123;&#125;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; size; i++ &#123;</span><br><span class="line">		jobI, jobIdx := i, i <span class="comment">// Copy Value to avoid copy pointer in goroutine function!</span></span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> wg.Done()</span><br><span class="line">			res[jobIdx] = jobI</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">&quot;size equal: %t, size: %d&quot;</span>, <span class="built_in">len</span>(res) == size, <span class="built_in">len</span>(res))</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>多个协程追加无法保证任务顺序，而提前开辟的数组能够保证和外面数组的顺序保持一致！</strong></li>
+</ul>
+<p>对于十万个任务来说，我们的程序可以轻松胜任；</p>
+<p>而对于十亿个任务，我们的程序可能会开出上百万个协程（这里为了效果更突出，Sleep了5s保留了更多的协程），从而占用大量的内存，并频繁切换上下文，造成严重的资源浪费！</p>
+<blockquote>
+<p>  有兴趣的可以看我的这篇文章：</p>
+<ul>
+<li><p><a href="/cn/2020/06/25/golang并发素数筛-并发真的会快吗？/">golang并发素数筛-并发真的会快吗？</a></p>
+<p>无限的Goroutine反而会导致程序执行效率一落千丈！</p>
+</li>
+</ul>
+</blockquote>
+<p>下面我们来限制一下Goroutine数量！</p>
+<br/>
+
+<h2 id="使用Go原生方式控制Goroutine数量"><a href="#使用Go原生方式控制Goroutine数量" class="headerlink" title="使用Go原生方式控制Goroutine数量"></a><strong>使用Go原生方式控制Goroutine数量</strong></h2><p>使用Go原生的方式控制Goroutine数量有两种思路：</p>
+<ul>
+<li>生产消费者模型结合Channel，无锁的实现限制；</li>
+<li>将协程也看做一种资源，使用信号量（semaphore）实现限制；</li>
+</ul>
+<p>下面我们一一来看！</p>
+<h3 id="使用Channel进行限制"><a href="#使用Channel进行限制" class="headerlink" title="使用Channel进行限制"></a><strong>使用Channel进行限制</strong></h3><p>代码如下：</p>
+<p>1-limit-with-channel-and-wg/limit_with_channel_and_wg.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	prefix = <span class="string">`hello: `</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	jobNum = <span class="number">1000000</span></span><br><span class="line"></span><br><span class="line">	poolSize = runtime.NumCPU() &lt;&lt; <span class="number">1</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> jobReqItem <span class="keyword">struct</span> &#123;</span><br><span class="line">	Str    <span class="type">string</span></span><br><span class="line">	JobIdx <span class="type">int</span></span><br><span class="line">	Res    *[]<span class="type">string</span></span><br><span class="line">	Wg     *sync.WaitGroup</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	arr := generateJobArr(jobNum)</span><br><span class="line"></span><br><span class="line">	wg := sync.WaitGroup&#123;&#125;</span><br><span class="line">	jobChan := <span class="built_in">make</span>(<span class="keyword">chan</span> *jobReqItem, poolSize)</span><br><span class="line">   	<span class="keyword">defer</span> <span class="built_in">close</span>(jobChan)</span><br><span class="line">	res := <span class="built_in">make</span>([]<span class="type">string</span>, <span class="built_in">len</span>(arr))</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Start Consumer: 生成指定数目的 goroutine，每个 goroutine 消费 jobsChan 中的数据</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; poolSize; i++ &#123;</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">for</span> jobReq := <span class="keyword">range</span> jobChan &#123;</span><br><span class="line">				job(jobReq)</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Start Producer: 把 job 依次推送到 jobsChan 供 goroutine 消费</span></span><br><span class="line">	<span class="keyword">for</span> idx, s := <span class="keyword">range</span> arr &#123;</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		jobChan &lt;- &amp;jobReqItem&#123;Str: s, JobIdx: idx, Res: &amp;res, Wg: &amp;wg&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Goroutine Number Check：</span></span><br><span class="line">		<span class="comment">// +1：包括了main函数的Goroutine</span></span><br><span class="line">		<span class="comment">// 两倍poolSize：是最差情况下，所有的Goroutine的锁全部释放的同时，所有新的Goroutine被创建</span></span><br><span class="line">		fmt.Printf(<span class="string">&quot;index: %d, goroutine Num: %d\n&quot;</span>, idx, runtime.NumGoroutine())</span><br><span class="line">		<span class="keyword">if</span> runtime.NumGoroutine() &gt; poolSize+<span class="number">1</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(<span class="string">&quot;超过了指定Goroutine池大小！&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Test</span></span><br><span class="line">	<span class="keyword">for</span> idx, re := <span class="keyword">range</span> res &#123;</span><br><span class="line">		<span class="keyword">if</span> re != prefix+arr[idx] &#123;</span><br><span class="line">			<span class="built_in">panic</span>(fmt.Sprintf(<span class="string">&quot;not equal: re: %s, arr[%d]: %s&quot;</span>, re, idx, arr[idx]))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 任务内容</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">job</span><span class="params">(jobReq *jobReqItem)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> jobReq.Wg.Done()</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">&quot;str: %s, jobIdx: %d\n&quot;</span>, jobReq.Str, jobReq.JobIdx)</span><br><span class="line">	(*jobReq.Res)[jobReq.JobIdx] = prefix + jobReq.Str</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码创建了一个Buffer大小为<code>poolSize=runtime.NumCPU() &lt;&lt; 1</code>、类型为<code>jobReqItem</code>的Chanenl，用于生产者向消费者发送任务；</p>
+<p>随后，创建<code>poolSize</code>个任务消费Goroutine，同时从Channel中获取任务；</p>
+<blockquote>
+<p>  <font color="#f00"><strong>注：此时生产者还未向Channel中发送消息，因此此时所有的消费Goroutine都处于阻塞状态！</strong></font></p>
+</blockquote>
+<p>然后，在for循环中提交任务；</p>
+<blockquote>
+<p>  <font color="#f00"><strong>For循环中使用<code>runtime.NumGoroutine()</code>校验了当前的Goroutine个数是否会超过限定的数量；</strong></font></p>
+<p>  <strong><code>+1</code>是包括了main函数这个Goroutine；</strong></p>
+</blockquote>
+<p>最后代码通过<code>wg.Wait()</code>等待所有任务完成，并在函数最后关闭Channel；</p>
+<p>测试上面的代码，可以发现是可以成功执行，并且可以通过最后的测试，即：所有的元素和原数组都是一一对应的！</p>
+<blockquote>
+<p>  <strong>上面的代码也是协程池实现的逻辑抽象！</strong></p>
+</blockquote>
+<p>下面我们来看另一种实现方式，即使用信号量实现；</p>
+<br/>
+
+<h3 id="使用semaphore进行限制"><a href="#使用semaphore进行限制" class="headerlink" title="使用semaphore进行限制"></a><strong>使用semaphore进行限制</strong></h3><p>使用semaphore进行限制的思想比较好理解，即：将协程也看做是一种资源，进行限制即可！</p>
+<p>代码如下：</p>
+<p>2-semaphore/semaphore.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;context&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;golang.org/x/sync/semaphore&quot;</span></span><br><span class="line">	<span class="string">&quot;runtime&quot;</span></span><br><span class="line">	<span class="string">&quot;strconv&quot;</span></span><br><span class="line">	<span class="string">&quot;sync&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	jobNum = <span class="number">1000000</span></span><br><span class="line"></span><br><span class="line">	poolSize = runtime.NumCPU() <span class="comment">// 同时运行的goroutine上限</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	arr := generateJobArr(jobNum)</span><br><span class="line"></span><br><span class="line">	wg := sync.WaitGroup&#123;&#125;</span><br><span class="line">	sem := semaphore.NewWeighted(<span class="type">int64</span>(poolSize))</span><br><span class="line">	res := <span class="built_in">make</span>([]<span class="type">string</span>, <span class="built_in">len</span>(arr))</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> idx, s := <span class="keyword">range</span> arr &#123;</span><br><span class="line">		err := sem.Acquire(context.Background(), <span class="number">1</span>)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(err)</span><br><span class="line">		&#125;</span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		<span class="keyword">go</span> job(s, idx, &amp;res, &amp;wg, sem)</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Goroutine Number Check：</span></span><br><span class="line">		<span class="comment">// +1：包括了main函数的Goroutine</span></span><br><span class="line">		<span class="comment">// 两倍poolSize：是最差情况下，所有的Goroutine的锁全部释放的同时，所有新的Goroutine被创建</span></span><br><span class="line">		fmt.Printf(<span class="string">&quot;index: %d, goroutine Num: %d\n&quot;</span>, idx, runtime.NumGoroutine())</span><br><span class="line">		<span class="keyword">if</span> runtime.NumGoroutine() &gt; poolSize&lt;&lt;<span class="number">1</span>+<span class="number">1</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(<span class="string">&quot;超过了指定Goroutine池大小！&quot;</span>)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Result Test</span></span><br><span class="line">	<span class="keyword">for</span> idx, re := <span class="keyword">range</span> res &#123;</span><br><span class="line">		<span class="keyword">if</span> re != prefix+arr[idx] &#123;</span><br><span class="line">			<span class="built_in">panic</span>(fmt.Sprintf(<span class="string">&quot;not equal: re: %s, arr[%d]: %s&quot;</span>, re, idx, arr[idx]))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 任务内容</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">job</span><span class="params">(str <span class="type">string</span>, jobIdx <span class="type">int</span>, res *[]<span class="type">string</span>, wg *sync.WaitGroup, sem *semaphore.Weighted)</span></span> &#123;</span><br><span class="line">	<span class="keyword">defer</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		wg.Done()</span><br><span class="line">		sem.Release(<span class="number">1</span>)</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">&quot;str: %s, jobIdx: %d\n&quot;</span>, str, jobIdx)</span><br><span class="line">	(*res)[jobIdx] = prefix + str</span><br><span class="line"></span><br><span class="line">	<span class="comment">//time.Sleep(time.Millisecond * 500) // 睡眠500ms，模拟耗时</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>  代码使用的是这个依赖：golang.org/x/sync/semaphore</p>
+</blockquote>
+<p>上面的代码理解起来非常简单：</p>
+<p>使用<code>semaphore.NewWeighted(int64(poolSize))</code>创建了<code>poolSize</code>大小的信号量；</p>
+<p>在For循环中，每次创建任务时首先使用<code>sem.Acquire(context.Background(), 1)</code>获取semaphore锁：</p>
+<ul>
+<li>如果获取到锁，则新开一个协程；</li>
+<li>否则主代码在此阻塞等待其他任务完成；</li>
+</ul>
+<p>如此便实现了限制Goroutine数量；</p>
+<p>测试上面的代码，可以发现是可以成功执行，并且可以通过最后的测试；</p>
+<p>但是相比于前一种使用Channel的方法，这里需要显式的使用锁，则Channel方法可以实现无锁并发！</p>
+<br/>
+
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a><strong>小结</strong></h3><p>使用Go原生的方法，我们可以很容易的实现将Goroutine严格且精确的限制在某个数量之下；</p>
+<p>例如上面的代码输出的<code>runtime.NumGoroutine()</code>永远都不会超过<code>poolSize+1</code>；</p>
+<p>但是如果我们有很多类似的并发任务，就需要重复的写代码；此时，我们可以使用现成的协程池来解决；</p>
+<br/>
+
+<h2 id="使用开源的协程池库"><a href="#使用开源的协程池库" class="headerlink" title="使用开源的协程池库"></a><strong>使用开源的协程池库</strong></h2><p>目前使用比较多的第三方的协程池库主要有：</p>
+<ul>
+<li><a href="https://github.com/panjf2000/ants">panjf2000/ants</a></li>
+<li><a href="https://github.com/go-playground/pool">go-playground/pool</a></li>
+<li><a href="https://github.com/Jeffail/tunny">Jeffail/tunny</a></li>
+</ul>
+<p>几种协程池的使用方式各有差异，下面一一来看！</p>
+<h3 id="panjf2000-ants"><a href="#panjf2000-ants" class="headerlink" title="panjf2000/ants"></a><strong>panjf2000/ants</strong></h3><p>ants库提供了执行两种方式：</p>
+<ul>
+<li><code>(p *Pool) Submit(task func())</code>：直接提交任务；</li>
+<li><code>(p *PoolWithFunc) Invoke(args interface{}) error</code>：调用缓存的函数执行；</li>
+</ul>
+<p>下面一一来看；</p>
+<h4 id="①-使用Submit"><a href="#①-使用Submit" class="headerlink" title="① 使用Submit"></a><strong>① 使用Submit</strong></h4><p>代码如下：</p>
+<p>3-ants/ants_submit.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">antsSubmit</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	arr := generateJobArr(jobNum)</span><br><span class="line"></span><br><span class="line">	pool, err := ants.NewPool(poolSize, <span class="function"><span class="keyword">func</span><span class="params">(opts *ants.Options)</span></span> &#123;</span><br><span class="line">		opts.Nonblocking = <span class="literal">false</span></span><br><span class="line">		opts.MaxBlockingTasks = <span class="built_in">len</span>(arr)</span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> pool.Release()</span><br><span class="line"></span><br><span class="line">	wg := sync.WaitGroup&#123;&#125;</span><br><span class="line">	res := <span class="built_in">make</span>([]<span class="type">string</span>, <span class="built_in">len</span>(arr))</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> idx, s := <span class="keyword">range</span> arr &#123;</span><br><span class="line">		jobIdx, jobStr := idx, s <span class="comment">// Copy Value to avoid copy pointer in Submit function!</span></span><br><span class="line">		err := pool.Submit(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			wg.Add(<span class="number">1</span>)</span><br><span class="line">			job(jobStr, jobIdx, &amp;res, &amp;wg)</span><br><span class="line">		&#125;)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(fmt.Errorf(<span class="string">&quot;submit job err: %v&quot;</span>, err))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码首先使用<code>ants.NewPool</code>创建了协程池；</p>
+<p>随后使用<code>pool.Submit</code>提交任务，并使用WaitGroup等待任务全部完成即可！</p>
+<p>就是这么简单，所有的限制都由协程池帮助我们完成了！</p>
+<h4 id="②-使用Invoke"><a href="#②-使用Invoke" class="headerlink" title="② 使用Invoke"></a><strong>② 使用Invoke</strong></h4><p>同时，ants也支持直接创建某一类函数的协程池；</p>
+<p>代码如下：</p>
+<p>3-ants/ants_with_func.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> jobItem <span class="keyword">struct</span> &#123;</span><br><span class="line">	Str    <span class="type">string</span></span><br><span class="line">	JobIdx <span class="type">int</span></span><br><span class="line">	Res    *[]<span class="type">string</span></span><br><span class="line">	Wg     *sync.WaitGroup</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">antsWithFunc</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	arr := generateJobArr(jobNum)</span><br><span class="line"></span><br><span class="line">	funcPool, err := ants.NewPoolWithFunc(poolSize,</span><br><span class="line">		<span class="function"><span class="keyword">func</span><span class="params">(i <span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">			item := i.(*jobItem)</span><br><span class="line">			job(item.Str, item.JobIdx, item.Res, item.Wg)</span><br><span class="line">		&#125;, <span class="function"><span class="keyword">func</span><span class="params">(opts *ants.Options)</span></span> &#123;</span><br><span class="line">			opts.Nonblocking = <span class="literal">false</span></span><br><span class="line">			opts.MaxBlockingTasks = <span class="built_in">len</span>(arr)</span><br><span class="line">		&#125;)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">defer</span> funcPool.Release()</span><br><span class="line"></span><br><span class="line">	wg := sync.WaitGroup&#123;&#125;</span><br><span class="line">	res := <span class="built_in">make</span>([]<span class="type">string</span>, <span class="built_in">len</span>(arr))</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> idx, s := <span class="keyword">range</span> arr &#123;</span><br><span class="line">		jobIdx, jobStr := idx, s <span class="comment">// Copy Value to avoid copy pointer in Submit function!</span></span><br><span class="line">		wg.Add(<span class="number">1</span>)</span><br><span class="line">		err := funcPool.Invoke(&amp;jobItem&#123;</span><br><span class="line">			Str:    jobStr,</span><br><span class="line">			JobIdx: jobIdx,</span><br><span class="line">			Res:    &amp;res,</span><br><span class="line">			Wg:     &amp;wg,</span><br><span class="line">		&#125;)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(fmt.Errorf(<span class="string">&quot;submit job err: %v&quot;</span>, err))</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>函数<code>ants.NewPoolWithFunc</code>的入参函数声明类型为<code>func(i interface{})</code>，因此我们需要将我们的任务包装为<code>jobItem</code>类型；</p>
+<p>同时，在调用<code>funcPool.Invoke</code>时对入参进行包装即可！</p>
+<p>从上面两个例子可以看到，我们可以很方便的使用<code>ants</code>库实现任务提交；</p>
+<br/>
+
+<h3 id="go-playground-pool"><a href="#go-playground-pool" class="headerlink" title="go-playground/pool"></a><strong>go-playground/pool</strong></h3><p>go-playground/pool库和ants的使用方法稍有不同，代码如下：</p>
+<p>4-go-playground/go-playground.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	jobNum = <span class="number">100000</span></span><br><span class="line"></span><br><span class="line">	poolSize = runtime.NumCPU()</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> jobResult <span class="keyword">struct</span> &#123;</span><br><span class="line">	JobIdx <span class="type">int</span></span><br><span class="line">	RetStr <span class="type">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	arr := generateJobArr(jobNum)</span><br><span class="line"></span><br><span class="line">	p := pool.NewLimited(<span class="type">uint</span>(poolSize))</span><br><span class="line">	<span class="keyword">defer</span> p.Close()</span><br><span class="line"></span><br><span class="line">	res := <span class="built_in">make</span>([]<span class="type">string</span>, <span class="built_in">len</span>(arr))</span><br><span class="line"></span><br><span class="line">	batch := p.Batch()</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">for</span> idx, s := <span class="keyword">range</span> arr &#123;</span><br><span class="line">			jobIdx, jobStr := idx, s <span class="comment">// Copy Value to avoid copy pointer in Submit function!</span></span><br><span class="line">			batch.Queue(<span class="function"><span class="keyword">func</span><span class="params">(wu pool.WorkUnit)</span></span> (<span class="keyword">interface</span>&#123;&#125;, <span class="type">error</span>) &#123;</span><br><span class="line">				<span class="keyword">if</span> wu.IsCancelled() &#123;</span><br><span class="line">					<span class="comment">// return values not used</span></span><br><span class="line">					<span class="keyword">return</span> <span class="literal">nil</span>, <span class="literal">nil</span></span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">return</span> job(jobStr, jobIdx)</span><br><span class="line">			&#125;)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// DO NOT FORGET THIS OR GOROUTINES WILL DEADLOCK</span></span><br><span class="line">		<span class="comment">// if calling Cancel() it calls QueueComplete() internally</span></span><br><span class="line">		batch.QueueComplete()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> jobResultWrapper := <span class="keyword">range</span> batch.Results() &#123;</span><br><span class="line">		<span class="keyword">if</span> err := jobResultWrapper.Error(); err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(err)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		jobResVal := jobResultWrapper.Value()</span><br><span class="line">		result := jobResVal.(*jobResult)</span><br><span class="line">		res[result.JobIdx] = result.RetStr</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 任务内容</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">job</span><span class="params">(str <span class="type">string</span>, jobIdx <span class="type">int</span>)</span></span> (*jobResult, <span class="type">error</span>) &#123;</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">&quot;str: %s, JobIdx: %d\n&quot;</span>, str, jobIdx)</span><br><span class="line">	retStr := prefix + str</span><br><span class="line"></span><br><span class="line">	<span class="comment">//time.Sleep(time.Millisecond * 500) // 睡眠500ms，模拟耗时</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// Goroutine Number Check：</span></span><br><span class="line">	fmt.Printf(<span class="string">&quot;index: %d, goroutine Num: %d\n&quot;</span>, jobIdx, runtime.NumGoroutine())</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> &amp;jobResult&#123;RetStr: retStr, JobIdx: jobIdx&#125;, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>go-playground/pool库比较特殊的地方在于：他允许异步提交任务，并在另一个地方获取并发的结果；</p>
+<p>如上面的代码所示：</p>
+<p>首先，通过<code>pool.NewLimited(uint(poolSize))</code>创建了协程池；</p>
+<p>随后通过<code>batch := p.Batch()</code>创建了一个批量任务，并异步的创建了一个协程：在for循环中通过<code>batch.Queue</code>提交任务，并在任务完成后调用<code>batch.QueueComplete()</code>完成任务；</p>
+<p>在随后的代码中通过<code>batch.Results()</code>获取各个批量任务的结果；</p>
+<p>go-playground/pool库使用的逻辑非常清晰，并且提供了任务撤销等一系列逻辑，使用起来非常方便；</p>
+<br/>
+
+<h3 id="Jeffail-tunny"><a href="#Jeffail-tunny" class="headerlink" title="Jeffail/tunny"></a><strong>Jeffail/tunny</strong></h3><p>Jeffail/tunny库与ants库相似，同样也支持创建函数协程池；</p>
+<p>同时Jeffail/tunny库还支持精确创建poolSize大小的协程池；</p>
+<p>代码如下：</p>
+<p>5-tunny/tunny.go</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	jobNum = <span class="number">100000</span></span><br><span class="line"></span><br><span class="line">	poolSize = runtime.NumCPU()</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> jobItem <span class="keyword">struct</span> &#123;</span><br><span class="line">	Str    <span class="type">string</span></span><br><span class="line">	JobIdx <span class="type">int</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> jobResult <span class="keyword">struct</span> &#123;</span><br><span class="line">	JobIdx <span class="type">int</span></span><br><span class="line">	RetStr <span class="type">string</span></span><br><span class="line">	Err    <span class="type">error</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	arr := generateJobArr(jobNum)</span><br><span class="line"></span><br><span class="line">	pool := tunny.NewFunc(poolSize, <span class="function"><span class="keyword">func</span><span class="params">(jobItemEntity <span class="keyword">interface</span>&#123;&#125;)</span></span> <span class="keyword">interface</span>&#123;&#125; &#123;</span><br><span class="line">		item := jobItemEntity.(*jobItem)</span><br><span class="line">		<span class="keyword">return</span> job(item.Str, item.JobIdx)</span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="keyword">defer</span> pool.Close()</span><br><span class="line"></span><br><span class="line">	res := <span class="built_in">make</span>([]<span class="type">string</span>, <span class="built_in">len</span>(arr))</span><br><span class="line">	<span class="keyword">for</span> idx, s := <span class="keyword">range</span> arr &#123;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Funnel this work into our pool. This call is synchronous and will</span></span><br><span class="line">		<span class="comment">// block until the job is completed.</span></span><br><span class="line">		result := pool.Process(&amp;jobItem&#123;</span><br><span class="line">			Str:    s,</span><br><span class="line">			JobIdx: idx,</span><br><span class="line">		&#125;).(*jobResult)</span><br><span class="line">		<span class="keyword">if</span> result.Err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="built_in">panic</span>(result.Err)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		res[result.JobIdx] = result.RetStr</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 任务内容</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">job</span><span class="params">(str <span class="type">string</span>, jobIdx <span class="type">int</span>)</span></span> *jobResult &#123;</span><br><span class="line"></span><br><span class="line">	fmt.Printf(<span class="string">&quot;str: %s, jobIdx: %d\n&quot;</span>, str, jobIdx)</span><br><span class="line">	retStr := prefix + str</span><br><span class="line"></span><br><span class="line">	<span class="comment">// Goroutine Number Check：</span></span><br><span class="line">	<span class="comment">// +1：包括了main函数的Goroutine</span></span><br><span class="line">	fmt.Printf(<span class="string">&quot;index: %d, goroutine Num: %d\n&quot;</span>, jobIdx, runtime.NumGoroutine())</span><br><span class="line">	<span class="keyword">if</span> runtime.NumGoroutine() &gt; poolSize+<span class="number">1</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">&quot;超过了指定Goroutine池大小！&quot;</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> &amp;jobResult&#123;RetStr: retStr, JobIdx: jobIdx, Err: <span class="literal">nil</span>&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先，使用<code>tunny.NewFunc</code>创建了一个<code>poolSize</code>大小的出参入参都为<code>interface{}</code>的协程池，在函数中提供了任务的实现方法；</p>
+<p>随后，调用<code>pool.Process</code>函数提交任务；</p>
+<p>由于入参和出参都为单个<code>interface{}</code>参数，因此需要使用<code>jobItem</code>和<code>jobResult</code>封装入参类型；</p>
+<br/>
+
+<h1 id="附录"><a href="#附录" class="headerlink" title="附录"></a><strong>附录</strong></h1><p>源代码：</p>
+<ul>
+<li><a href="https://github.com/JasonkayZK/Go_Learn/tree/goroutine-limit">https://github.com/JasonkayZK/Go_Learn/tree/goroutine-limit</a></li>
+</ul>
+<p>使用Go手动实现的一个协程池：</p>
+<ul>
+<li><a href="https://github.com/JasonkayZK/pool">https://github.com/JasonkayZK/pool</a></li>
+</ul>
+<p>文章参考：</p>
+<ul>
+<li><a href="https://jingwei.link/2019/09/13/conotrol-goroutines-count.html">【图示】控制 Goroutine 的并发数量的方式</a></li>
+<li><a href="https://boilingfrog.github.io/2021/04/14/%E6%8E%A7%E5%88%B6goroutine%E7%9A%84%E6%95%B0%E9%87%8F/">go中如何控制goroutine的数量</a></li>
+</ul>
+<br/>
+
+  </article>
+
+  <div id="like-container" style="text-align: center">
+    <div class="like-feed">
+      <p>觉得本文不错就点个<span>♥</span>再走吧~</p>
+      <div class="like-img">
+        <div class="like-heart" id="like" rel="like"></div>
+        <div class="like-count" id="like-count"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 文章分享 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/social-share.js/1.0.16/css/share.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/social-share.js/1.0.16/js/social-share.min.js"></script>
+  <div class="social-share" data-mode="prepend" data-disabled="tencent,diandian"></div>
+  <br />
+
+  
+  
+<div class="nexmoe-post-copyright">
+<i class="mdui-list-item-icon nexmoefont icon-info-circle"></i>
+<strong>本文作者：</strong>Jasonkay<br>
+<strong>本文链接：</strong><a href="https://jasonkayzk.github.io/cn/2021/10/22/%E6%8E%A7%E5%88%B6Goroutine%E6%95%B0%E9%87%8F%E7%9A%84%E6%96%B9%E6%B3%95/" title="https:&#x2F;&#x2F;jasonkayzk.github.io&#x2F;cn&#x2F;2021&#x2F;10&#x2F;22&#x2F;%E6%8E%A7%E5%88%B6Goroutine%E6%95%B0%E9%87%8F%E7%9A%84%E6%96%B9%E6%B3%95&#x2F;" target="_blank" rel="noopener">https:&#x2F;&#x2F;jasonkayzk.github.io&#x2F;cn&#x2F;2021&#x2F;10&#x2F;22&#x2F;%E6%8E%A7%E5%88%B6Goroutine%E6%95%B0%E9%87%8F%E7%9A%84%E6%96%B9%E6%B3%95&#x2F;</a><br>
+
+  <strong>版权声明：</strong>本文采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/cn/deed.zh" target="_blank">CC BY-NC-SA 3.0 CN</a> 协议进行许可
+
+</div>
+
+
+  
+
+  <!-- 增加面试点击标题才显示答案等效果! -->
+  <!-- <script type="text/javascript">
+    $(".question").click(function () {
+      var a = $(".answer").eq($(".question").index(this));
+      a.is(".answer_shown") ? a.animate({ 'opacity': '1' }, 800).removeClass("answer_shown") : a.animate({ 'opacity': '0' }, 800).addClass("answer_shown");
+    });
+  </script> -->
+  <!-- <style>
+    .answer_shown {
+      opacity: 0;
+    }
+  </style> -->
+
+  <!-- 加载博客点赞功能 -->
+  <script>
+    function ajax(options) {
+      return new Promise(function (resolve, reject) {
+        $.ajax(options).done(resolve).fail(reject);
+      });
+    }
+
+    var docName = $('meta[property="og:title"]').attr('content');
+    
+    // 跳过localhost
+    if (location.hostname !== 'localhost') {
+      // 初始化
+      ajax({
+        url: "https://service-rvqf6dam-1257829547.gz.apigw.tencentcs.com/blog_like/",
+        type: 'post',
+        contentType: 'application/json; charset=utf-8',
+        data: JSON.stringify({
+          "actionId": "get",
+          "docName": docName
+        })
+      }).then(
+        function fulfillHandler(data) {
+          $('#like-count').text(data.likeNum);
+        },
+        function rejectHandler(jqXHR, textStatus, errorThrown) {
+          $('#like-count').text(0);
+          console.log(jqXHR, textStatus, errorThrown);
+        }
+      ).catch(function errorHandler(error) {
+        $('#like-count').text(0);
+        console.log(error);
+      });
+
+      $(document).ready(function () {
+        $(".like-heart").on("click", function () {
+          var heart = $(this);
+          var likeCount = $("#like-count" + heart.attr("id").split("like")[1]);
+          var intCount = parseInt(likeCount.html());
+          var rel = heart.attr("rel");
+
+          if (rel === "like") {
+            likeCount.html(intCount + 1);
+            heart.addClass("like-heartAnimation").attr("rel", "unlike");
+            ajax({
+              url: "https://service-rvqf6dam-1257829547.gz.apigw.tencentcs.com/blog_like/",
+              type: 'post',
+              contentType: 'application/json; charset=utf-8',
+              data: JSON.stringify({
+                "actionId": "add",
+                "docName": docName
+              })
+            }).catch(function errorHandler(error) {
+              console.log(error);
+            });
+          } else {
+            likeCount.html(intCount - 1);
+            heart.removeClass("like-heartAnimation").attr("rel", "like");
+            heart.css("background-position", "left");
+            ajax({
+              url: "https://service-rvqf6dam-1257829547.gz.apigw.tencentcs.com/blog_like/",
+              type: 'post',
+              contentType: 'application/json; charset=utf-8',
+              data: JSON.stringify({
+                "actionId": "subtract",
+                "docName": docName
+              })
+            }).catch(function errorHandler(error) {
+              console.log(error);
+            });
+          }
+        }).on("mouseleave", function () {
+          $(this).css("background-position", "");
+        });
+      });
+    }
+  </script>
+  <style>
+    #like-container {
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .like-img {
+      width: 200px;
+      height: 100px;
+      display: inline-block;
+    }
+
+    .like-heart {
+      float: left;
+      background: url(/cn/images/web_heart_animation.png);
+      background-position: left;
+      background-repeat: no-repeat;
+      height: 50px;
+      width: 120px;
+      left: -14px;
+      background-size: 2900%;
+    }
+
+    .like-count {
+      float: left;
+      font-family: 'Georgia', Times, Times New Roman, serif;
+      font-size: 35px;
+      color: #999999;
+      text-align: left;
+      height: 50px;
+      width: 50px;
+      line-height: 44px;
+    }
+
+    .like-heart:hover,
+    .like-heart:focus {
+      background-position: right;
+    }
+
+    @-webkit-keyframes heartBlast {
+      0% {
+        background-position: left;
+      }
+
+      100% {
+        background-position: right;
+      }
+    }
+
+    @keyframes heartBlast {
+      0% {
+        background-position: left;
+      }
+
+      100% {
+        background-position: right;
+      }
+    }
+
+    .like-heartAnimation {
+      display: inline-block;
+      -webkit-animation-name: heartBlast;
+      animation-name: heartBlast;
+      -webkit-animation-duration: .8s;
+      animation-duration: .8s;
+      -webkit-animation-iteration-count: 1;
+      animation-iteration-count: 1;
+      -webkit-animation-timing-function: steps(28);
+      animation-timing-function: steps(28);
+      background-position: right;
+    }
+
+    .like-feed {
+      height: 90px;
+      margin-bottom: 20px;
+      text-align: center
+    }
+
+    .like-feed p {
+      font-family: 'microsoft yahei', 'Georgia';
+      font-size: 25px;
+    }
+
+    .like-feed span {
+      font-size: 30px;
+      color: #D33115;
+    }
+  </style>
+
+  <section class="nexmoe-comment">
+    <div class="utterances"></div>
+<style>
+    .v .vwrap {
+      border: 1px dashed #c4bfbf
+    }
+  
+    .v .vwrap .vheader .vinput {
+      border-bottom: 1px dashed #c4bfbf
+    }
+</style>
+<script src="https://utteranc.es/client.js"
+        repo='JasonkayZK/cn'
+        issue-term="title"
+        label="comment✨💬✨"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+
+</section>
+</div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/mdui@0.4.3/dist/js/mdui.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
+ 
+    <script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script>
+
+
+ 
+    <script src="https://cdn.jsdelivr.net/npm/smoothscroll-for-websites@1.4.9/SmoothScroll.min.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@9.16.2/build/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<script src="/cn/js/app.js?v=1792901139080"></script>
+<script src="https://cdn.jsdelivr.net/npm/lazysizes@5.1.0/lazysizes.min.js"></script>
+
+
+
+
+  
+    <!-- Google Analytics -->
+<script>
+    window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+    ga('create', 'G-1NWK4EEKDF', 'auto');
+    ga('send', 'pageview');
+</script>
+<script async src="https://www.google-analytics.com/analytics.js"></script>
+
+
+
+
+
+
+    <!-- baidu Analytics -->
+<script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?5f5ec71a32c11ff54dff64d0341017b0";
+      var s = document.getElementsByTagName("script")[0]; 
+      s.parentNode.insertBefore(hm, s);
+    })();
+</script>
+
+</body>
+
+<!-- 页面点击小红心 -->
+<!-- 
+<script type="text/javascript">
+  !function (e, t, a) { function n() { c(".heart{width: 10px;height: 10px;position: fixed;background: #f00;transform: rotate(45deg);-webkit-transform: rotate(45deg);-moz-transform: rotate(45deg);}.heart:after,.heart:before{content: '';width: inherit;height: inherit;background: inherit;border-radius: 50%;-webkit-border-radius: 50%;-moz-border-radius: 50%;position: fixed;}.heart:after{top: -5px;}.heart:before{left: -5px;}"), o(), r() } function r() { for (var e = 0; e < d.length; e++)d[e].alpha <= 0 ? (t.body.removeChild(d[e].el), d.splice(e, 1)) : (d[e].y--, d[e].scale += .004, d[e].alpha -= .013, d[e].el.style.cssText = "left:" + d[e].x + "px;top:" + d[e].y + "px;opacity:" + d[e].alpha + ";transform:scale(" + d[e].scale + "," + d[e].scale + ") rotate(45deg);background:" + d[e].color + ";z-index:99999"); requestAnimationFrame(r) } function o() { var t = "function" == typeof e.onclick && e.onclick; e.onclick = function (e) { t && t(), i(e) } } function i(e) { var a = t.createElement("div"); a.className = "heart", d.push({ el: a, x: e.clientX - 5, y: e.clientY - 5, scale: 1, alpha: 1, color: s() }), t.body.appendChild(a) } function c(e) { var a = t.createElement("style"); a.type = "text/css"; try { a.appendChild(t.createTextNode(e)) } catch (t) { a.styleSheet.cssText = e } t.getElementsByTagName("head")[0].appendChild(a) } function s() { return "rgb(" + ~~(255 * Math.random()) + "," + ~~(255 * Math.random()) + "," + ~~(255 * Math.random()) + ")" } var d = []; e.requestAnimationFrame = function () { return e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame || function (e) { setTimeout(e, 1e3 / 60) } }(), n() }(window, document);
+</script>
+ -->
+ 
+<script>
+  // 进度条加载: nprogress
+  NProgress.start()
+  NProgress.done()
+</script>
+
+<script type="text/javascript" defer>
+  $(document).ready(function () {
+    $.goup({
+      trigger: 100,
+      bottomOffset: 50,
+      locationOffset: 50,
+      title: '0%',
+      titleAsText: true
+    });
+    $(".goup-container").css("background", "#64dcf0 none repeat scroll 0% 0%").css("opacity", 0.9);
+    $(".goup-text").css("font-weight", 600).css("opacity", 0.9);
+  });
+
+  $(document).scroll(function () {
+    var d_h = $(document).height();
+    var c_h = $(window).height();
+    var c_t_h = $(window).scrollTop();
+    var schedule = c_t_h / (d_h - c_h - 0.5);
+    var str = Number(schedule * 100).toFixed();
+    str += "%";
+    $(".goup-text").text(str);
+  });
+</script>
+
+<!-- 站内通知 -->
+<script src="/cn/js/notification.js"></script>
+<script>
+  'use strict';
+
+  (function () {
+    $(function () {
+      $('.position').click(function (event) {
+        var el = $(event.target);
+        $('.position').removeClass('selected');
+        el.addClass('selected');
+        position = el.attr('data-position');
+      });
+    });
+  });
+
+  var position = 2;
+  // 关闭百毫秒数
+  var closeTime = 50;
+  var notifyFunc = function () {
+    // Notification.create(
+    //   // Title
+    //   "Tencent内推中📧",
+    //   // Text
+    //   "简历投递处：<BR/><a href='/hiring/'>简历投递</a>",
+    //   // Illustration
+    //   "/cn/images/avatar4.jpg",
+    //   // Effect
+    //   'fadeInRight',
+    //   // Position 1, 2, 3, 4
+    //   position,
+    //   closeTime
+    // );
+    // setTimeout(() => {
+    //   Notification.create(
+    //     "资源下载⚡",
+    //     "传送门：<BR/><a href='/sharing/'>文件分享</a>",
+    //     "/cn/images/avatar4.jpg",
+    //     'fadeInRight',
+    //     position,
+    //     closeTime
+    //   )
+    // }, 350);
+    setTimeout(() => {
+      Notification.create(
+        "RSS订阅📢",
+        "传送门：<BR/><a href='/cn/atom.xml'>RSS订阅</a>",
+        "/cn/images/avatar4.jpg",
+        'fadeInRight',
+        position,
+        closeTime
+      )
+    }, 0);
+    setTimeout(() => {
+        Notification.create(
+        "在线群聊💭",
+        "传送门：<BR/><a href='/cn/chat/'>畅所欲言</a>",
+        "/cn/images/avatar4.jpg",
+        'fadeInRight',
+        position,
+        closeTime
+      )
+    }, 350);
+    setTimeout(() => {
+        Notification.create(
+        // "跑步健身🏃",
+        // "传送门：<BR/><a href='/running/'>跑步健身</a>",
+        "摄影分享📷",
+        "传送门：<BR/><a href='http://159.75.131.252:32352/'>摄影分享</a>",
+        "/cn/images/avatar4.jpg",
+        'fadeInRight',
+        position,
+        closeTime
+      )
+    }, 700);
+  };
+
+  (function once() {
+    if (sessionStorage.getItem('load') == null) {
+      notifyFunc();
+      sessionStorage.setItem('load', false);
+    } else {
+      return;
+    }
+  })();
+</script>
+<script>
+  $(document).on("click", ".dismiss", function (e) {
+    Notification.hide(e.currentTarget.classList[1].split('-')[1]);
+  })
+</script>
+
+</html>
