@@ -1,0 +1,43 @@
+name: Build & Deploy Blog
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Setup hexo
+        env:
+          ACTION_DEPLOY_KEY: ${{ secrets.hexo_deploy_pri }}
+        run: |
+          mkdir -p ~/.ssh/
+          echo "$ACTION_DEPLOY_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          git config --global user.email "jasonkayzk@gmail.com"
+          git config --global user.name "jasonkayzk"
+          npm install hexo-cli -g
+          npm install
+
+      - name: Hexo deploy
+        env:
+          GIT_SSH_COMMAND: ssh -o StrictHostKeyChecking=no
+        run: |
+          hexo clean
+          hexo g
+          hexo d

@@ -1,0 +1,125 @@
+<section class="nexmoe-posts" id="brand-waterfall">
+    <% page.posts.each(function (page) { %>
+    <div class="nexmoe-post">
+        <a href="<%- url_for(page.path) %>">
+            <div class="nexmoe-post-cover mdui-ripple"> 
+                <!-- 在Markdown中设置了置顶: top=100 -->
+                <% if (page.top) { %>
+                    <div class="excerpt sticky-icon">
+                        置顶
+                    </div>
+                <% } %>
+                <!-- 最近三天的内容为NEW -->
+                <% if (date(page.date, "YYYY-MM-DD") >= moment(Date.now()).subtract(3, "days").format("YYYY-MM-DD")) { %>
+                    <div class="excerpt new-icon">
+                        NEW
+                    </div>
+                <% } %>
+
+                <% if (page.cover){ %>
+                <img src="<%- page.cover %>" alt="<%= page.title %>">
+                <%}  else{ %>
+                    <img src="<%- url_for(theme.background) %>" alt="<%= page.title %>">
+                <% } %>
+                <h1><%= page.title %></h1>
+            </div>
+        </a>
+        <div class="nexmoe-post-meta">
+            <a><i class="nexmoefont icon-calendar-fill"></i><%- date(page.date, "YYYY年MM月DD日") %></a>
+            <a><i class="nexmoefont icon-areachart"></i><%= wordcount(page.content) %> 字</a>
+            <a><i class="nexmoefont icon-time-circle-fill"></i>大概 <%= min2read(page.content, {cn: 250, en: 160}) %> 分钟</a>
+            <% if (page.categories && page.categories.length){ %>
+                <%- list_categories(page.categories, {
+                    show_count: false,
+                    class: 'nexmoefont icon-appstore-fill ',
+                    style: 'none',
+                    separator: ''
+                }) %>
+            <% } %>
+            <% if (page.tags && page.tags.length){ %>
+                <%- list_tags(page.tags, {
+                    show_count: false,
+                    class: 'nexmoefont icon-tag-fill ',
+                    style: 'none',
+                    separator: ' '
+                }) %>
+            <% } %>
+        </div>
+        <article>
+            <% if(page.excerpt) {%>
+            <%- page.excerpt %>
+            <%}  else{ %>
+            <%- page.content %>
+            <% } %>
+        </article>
+    </div>
+    <% }) %>
+</section>
+<%- partial('_partial/paginator') %>
+
+<!-- 置顶等 -->
+<style type="text/css">
+    /** 修正摘要列表定位方式 */
+    .excerpt {
+        position: relative;
+    }
+
+    /** NEW 图标文字版样式 **/
+    .new-icon{
+        position: absolute;
+        right: -110px;
+        top: -40px;
+        display: block;
+        width: 300px;
+        height: 34px;
+        line-height: 32px;
+        background: #4caf50;
+        color: #fff;
+        font-size: 21px;
+        font-weight: 500;
+        text-align: center;
+        transform: rotate(36deg);
+        transform-origin: 0% 0%;
+    }
+
+    /** 置顶图标文字版样式 **/
+    .sticky-icon {
+        position: absolute;
+        padding: 0;
+        right: -110px;
+        top: -40px;
+        display: block;
+        width: 300px;
+        height: 34px;
+        line-height: 32px;
+        background: #ff5e52;
+        color: #fff;
+        font-size: 21px;
+        font-weight: 500;
+        text-align: center;
+        transform: rotate(36deg);
+        transform-origin: 0% 0%;
+    }
+    
+    @media (max-width:640px){
+        .excerpt-sticky header{text-indent:0px;position: unset;}
+        .sticky-icon {
+            position: absolute;
+            padding: 0;
+            right: -45px;
+            left: auto;
+            top: -20px;
+            display: block;
+            width: 120px;
+            height: 24px;
+            line-height: 24px;
+            background: #ff5e52;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 500;
+            text-align: center;
+            transform: rotate(36deg);
+            transform-origin: 0% 0%;
+        }
+    }
+</style>
